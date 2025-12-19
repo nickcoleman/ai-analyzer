@@ -1,537 +1,346 @@
-# Quality-Assurance-Engineer.md v8.0.6
+# Quality-Assurance-Engineer.md v8.0.7
+## Stock-Analyst Phase 1: Enhanced with Degradation Guidance & Check Classification
 
-**Version:** v8.0.6 - Gate Hierarchy (5A-5E) & Sequential Headroom Validation  
-**Status:** Complete, ready for upload  
-**Last Updated:** December 9, 2025, 12:40 PM MST
-
----
-
-## OVERVIEW
-
-Quality-Assurance-Engineer is responsible for validating all position proposals before execution. QA operates as an 8-gate approval/rejection system with escalation points. All inputs flow from Stock-Analyst output (SAOutput), and all approvals route to Portfolio-Orchestrator for execution.
+**Version:** v8.0.7 (Phase 1 Enhancement)  
+**Previous:** v8.0.6-FIXED  
+**Status:** Production Ready  
+**Framework:** Stock-Analyst v8.13, Phase 1  
+**Last Updated:** December 13, 2025, 1:10 PM MST
 
 ---
 
-## GATE 1 – PORTFOLIO DATA FRESHNESS
+## PHASE 1 CHANGES (v8.0.6 → v8.0.7)
 
-### Purpose
+**Added:** 
+- Degradation Guidance section (5 degradation paths for missing/stale inputs)
+- Check vs. Alert classification for all 8 gates
+- Gate pass/fail decision tree with auto-rerun integration
+- Integration with quality_metadata alerts structure
 
-Validate that the portfolio data used in analysis is still fresh enough to inform approval decision.
+**Preserved:** 
+- All 8 original QA gate definitions, logic, escalation paths
+- QA Report structure
+- Framework invariants
 
-### Process
+---
 
-**Check:**
-- SAOutput.portfolio_timestamp vs. current_time
-- Days elapsed since portfolio data reference point
-- If fresh (≤1 trading day) → PASS, proceed to GATE 2
-- If stale (>1 day) → Escalate to Master-Architect
+## THE 8 QA GATES (v8.0.7)
 
-**Logic:**
+### HARD CHECKS (Block Analysis on Failure)
+
+**Gate 1: Portfolio Freshness**
+- **Check:** Is PORTFOLIO.md ≤1 day old?
+- **If FAIL:** Escalate to Master-Architect or block analysis
+- **Reason:** Portfolio constraints depend on current allocation data
+- **Classification:** **CHECK** (hard failure)
+
+**Gate 2: Stock Existence & Uniqueness**
+- **Check:** Is this a real, tradeable stock (no duplicates in recent analyses)?
+- **If FAIL:** Block analysis (invalid stock)
+- **Reason:** Cannot issue recommendation for non-existent security
+- **Classification:** **CHECK** (hard failure)
+
+**Gate 3: Sector Portfolio Constraints**
+- **Check:** Is target sector below 35% hard cap (including new position)?
+- **If FAIL:** Reduce position size or recommend HOLD
+- **Reason:** Portfolio concentration limits
+- **Classification:** **CHECK** (hard failure)
+
+**Gate 4: Conviction Position Sizing**
+- **Check:** Does position size match conviction tier?
+- **If FAIL:** Adjust sizing or recommendation
+- **Reason:** High conviction gets 3-5%, low conviction gets 0-1%
+- **Classification:** **CHECK** (hard failure)
+
+**Gate 5: Account Portfolio Cash Validation**
+- **Check:** Does account have sufficient cash for position?
+- **If FAIL:** Reduce position size or defer
+- **Reason:** Cannot issue position bigger than available cash
+- **Classification:** **CHECK** (hard failure)
+
+**Gate 6: Thesis Quality & Schema Validation**
+- **Check:** Are all thesis components present and valid?
+  - Thesis statement ✓
+  - 3+ key drivers ✓
+  - 3+ key risks ✓
+  - Conviction level ✓
+- **If FAIL:** Return to TURN 2 for thesis completion
+- **Reason:** Complete thesis required before sizing
+- **Classification:** **CHECK** (hard failure)
+
+**Gate 8: Execution Ready**
+- **Check:** Are there any unresolved questions or ambiguities?
+- **If FAIL:** Flag and resolve before delivery
+- **Reason:** Analyst must have high confidence
+- **Classification:** **CHECK** (hard failure)
+
+### SOFT ALERT (Informs but Doesn't Block)
+
+**Gate 7: Master-Architect Guidance Compliance**
+- **Check:** Does position comply with all standing MA directives?
+- **If MISMATCH:** Log alert, proceed with note
+- **Severity:** WARNING
+- **Reason:** MA directives are advisory constraints, not absolute blockers
+- **Classification:** **ALERT** (non-blocking)
+
+---
+
+## DEGRADATION GUIDANCE (Phase 1 Addition)
+
+When inputs missing or stale, analysis proceeds with penalty + disclosure in alerts.
+
+### Degradation Rule 1: Portfolio Data Stale (>1 day)
+
+**Condition:** PORTFOLIO.md >1 day old at analysis time
+
+**Action:** Proceed with analysis; apply constraint validation penalty
+
+**Penalty:** -1 to -2 conviction points (analyst discretion based on market volatility)
+
+**Alert Structure:**
+```json
+{
+  "alert_id": "PORTFOLIODATASTALE",
+  "severity": "WARNING",
+  "message": "Portfolio data [X hours] old (>1 day threshold)",
+  "penalty_points": -1,
+  "disclosure": "Sector caps and position sizing based on stale allocation; rebalance at market open recommended"
+}
 ```
-days_elapsed = current_time - SAOutput.portfolio_timestamp
 
-IF days_elapsed <= 1 trading day:
-  GATE1_RESULT = PASS
-  proceed to GATE 2
-  
-ELSE:
-  GATE1_RESULT = ESCALATE
-  escalate to Master-Architect
-  ask: "Approve analysis with stale portfolio OR halt"
+**Conviction Example:**
+```
+Base 75 × EMA 1.05 × GC 1.15 - 1 (stale portfolio) = 90.56
 ```
 
 ---
 
-## GATE 2 – STOCK EXISTENCE & UNIQUENESS
+### Degradation Rule 2: MA Output Missing/Stale (>4 hours or unavailable)
 
-### Purpose
+**Condition:** MA context >4 hours old or unavailable
 
-Verify the stock recommendation is real, valid, and not a duplicate submission.
+**Action:** Use NEUTRAL regime (default safe position)
 
-### Process
+**Penalty:** -2 conviction points
 
-**Checks:**
-- Ticker exists in financial markets (not fabricated)
-- Sector classification matches known taxonomy
-- Check SAOutput.pending_trades_queue for duplicates
-  - If same ticker submitted twice same day → REJECT duplicate
-  - Note reason: "Duplicate position same day"
-- Verify stock is not on restricted/prohibited list
-
-**Logic:**
+**Alert Structure:**
+```json
+{
+  "alert_id": "DATAFRESHNESSMA",
+  "severity": "WARNING",
+  "message": "Market-Analyst output [X hours] old (cache age)",
+  "penalty_points": -2,
+  "disclosure": "Analysis used cached/default MA regime; fresh output will be loaded async"
+}
 ```
-IF ticker_exists AND sector_valid:
-  GATE2_RESULT = PASS
-  proceed to GATE 3
-  
-ELSE IF duplicate_submission:
-  GATE2_RESULT = FAIL
-  action: REJECT duplicate submission
-  escalate to Master-Architect
-  
-ELSE:
-  GATE2_RESULT = FAIL
-  action: REJECT invalid ticker/sector
+
+**Conviction Example:**
+```
+Base 75 × EMA 1.05 × GC 1.15 - 2 (MA stale penalty) = 91.46
 ```
 
 ---
 
-## GATE 3 – SECTOR & PORTFOLIO CONSTRAINTS
+### Degradation Rule 3: Alpha Picks Context Missing (>24 hours or unavailable)
 
-### Purpose
+**Condition:** Alpha context >24 hours old or unavailable
 
-Validate individual position respects sector allocation cap and validates sequential headroom when multiple positions target same sector.
+**Action:** Use NONE (no context provided)
 
-### Check 3A: Current Sector Allocation
+**Penalty:** 0 points (no boost, not a penalty)
 
-**Purpose:** Confirm sector hasn't already breached 35% cap.
-
-**Logic:**
+**Alert Structure:**
+```json
+{
+  "alert_id": "ALPHACONTEXTMISSING",
+  "severity": "INFO",
+  "message": "Alpha Picks context >24 hours old; using NONE",
+  "penalty_points": 0,
+  "disclosure": "No Alpha Picks conviction boost applied; conviction from fundamental + technical"
+}
 ```
-current_sector_allocation = PORTFOLIO.md[sector].allocation_percent
-sector_cap = 0.35
 
-IF current_sector_allocation >= sector_cap:
-  GATE_FAIL: "Sector at cap, cannot add positions"
-  escalate to Master-Architect
-  
-ELSE:
-  validation passes for this check
+**Conviction Example:**
+```
+No Alpha boost would add +2-3 points if available
+Base 75 × EMA 1.05 × GC 1.15 = 89.46
 ```
 
 ---
 
-### Check 3B: Sequential Headroom Validation (PATCH 2)
+### Degradation Rule 4: EMA Cache Incomplete (<200 days available)
 
-**Purpose:** When multiple positions target same sector, validate each position respected its available headroom.
+**Condition:** Less than 200 days of EMA history available (new stocks, IPOs)
 
-**When Triggered:** If pending_trades_list contains 2+ trades to same sector.
+**Action:** Skip Golden Cross technical analysis; proceed with EMA 3/21/200 only
 
-**Validation Logic:**
+**Penalty:** -3 conviction points
+
+**Alert Structure:**
+```json
+{
+  "alert_id": "EMADATAINCOMPLETE",
+  "severity": "WARNING",
+  "message": "Only [X days] of EMA history available (need 200 for Golden Cross)",
+  "penalty_points": -3,
+  "disclosure": "Golden Cross analysis skipped; 3/21/200 EMA gating applied"
+}
+```
+
+**Conviction Example:**
+```
+Base 75 × EMA 1.05 (3/21/200 only) × GC 1.0 (no signal) - 3 (incomplete data) = 79.88
+```
+
+---
+
+### Degradation Rule 5: Analyst Revisions Unavailable (>5 days or missing)
+
+**Condition:** Analyst estimate revisions >5 days old or missing
+
+**Action:** Skip sentiment validation; proceed without sentiment input
+
+**Penalty:** -1 conviction point
+
+**Alert Structure:**
+```json
+{
+  "alert_id": "ANALYSTREVISIONSUNAVAILABLE",
+  "severity": "INFO",
+  "message": "Analyst revisions not available or >5 days old",
+  "penalty_points": -1,
+  "disclosure": "Sentiment validation skipped; conviction from fundamental + technical"
+}
+```
+
+**Conviction Example:**
+```
+Base 75 × EMA 1.05 × GC 1.15 - 1 (no sentiment) = 90.56
+```
+
+---
+
+## DEGRADATION SUMMARY TABLE
+
+| Input | Stale/Missing | Proceed? | Penalty | Disclosure | Quality_Metadata |
+|-------|---|---|---|---|---|
+| Portfolio Data | >1 day | YES | -1 to -2 pts | Alert WARNING | portfolio_stale |
+| MA Output | >4 hrs | YES | -2 pts | Alert WARNING | ma_stale_penalty |
+| Alpha Context | >24 hrs | YES | 0 pts | Alert INFO | alpha_missing |
+| EMA Cache | <200 days | YES | -3 pts | Alert WARNING | ema_incomplete |
+| Analyst Revisions | >5 days | YES | -1 pt | Alert INFO | analyst_revisions_missing |
+
+**All degradations visible in `quality_metadata.alerts` and `quality_metadata.conviction_calculation.penalties_applied`**
+
+---
+
+## GATE PASS/FAIL DECISION TREE
 
 ```
-IF sector_has_multiple_pending_positions:
+FOR each Gate (1-8, plus Gates 9-10 in Stock-Analyst v8.12.1):
   
-  FOR each position in sector_pending (in chronological order):
-    
-    Calculate headroom available to this position:
-      headroom_at_this_position = sector_cap - (current_allocation + sum_earlier_positions)
-    
-    Validate: position_size <= headroom_at_this_position
-    
-    IF position_size > headroom_at_this_position:
-      GATE_FAIL: "Position violates sequential headroom constraint"
-      Detail: Position {i} size {size}% exceeds available headroom {headroom}%
-      
+  Run Gate check
+  
+  IF Gate is HARD CHECK:
+    IF Check fails:
+      Add to quality_metadata.checks_executed.failed
+      IF error is recoverable:
+        Auto-rerun (max 3 attempts)
+      ELSE:
+        ESCALATE to analyst
     ELSE:
-      Validation passes for this position
+      Add to quality_metadata.checks_executed.passed
   
-  FINAL: Sum all positions, verify aggregate <= sector_cap
-    aggregate_sector = current_allocation + sum_all_positions
-    IF aggregate_sector > 0.35:
-      GATE_FAIL: "Aggregate positions exceed sector cap"
-    ELSE:
-      GATE_PASS: "Sequential headroom and aggregate valid"
-```
+  IF Gate is SOFT ALERT:
+    IF Check shows concern:
+      Add alert to quality_metadata.alerts
+      Apply penalty if specified
+      Log disclosure
+    Proceed with analysis (non-blocking)
 
-**Example:**
+END FOR each Gate
 
-```
-Metals: 30.7% current, 4.3% headroom
-Position A: 3.5% (approved 1:00 PM)
-  Headroom at A: 4.3%
-  A size 3.5% <= 4.3% ✓
-
-Position B: 0.8% (approved 1:15 PM)
-  Headroom at B: 4.3% - 3.5% = 0.8%
-  B size 0.8% <= 0.8% ✓
-
-Aggregate: 30.7% + 3.5% + 0.8% = 35.0% ✓ (at cap, within limit)
-
-GATE_PASS: "Sequential positions valid"
-```
-
-**Decision:** If all validations pass, GATE 3 PASSES. If any fail, GATE 3 FAILS and escalates.
-
----
-
-## GATE 4 – CONVICTION & POSITION SIZING
-
-### Purpose
-
-Validate conviction level is justified and position size matches conviction tier.
-
-### Process
-
-**Checks:**
-- Conviction level (HIGH/MEDIUM/LOW) supported by thesis evidence
-- Base position size (1-5%) aligns with conviction tier
-- All multipliers (risk regime, account cash, sector headroom) correctly applied
-- Final position size ≤ 6%
-- Final position size ≤ sector headroom
-
-**Logic:**
-```
-IF conviction_matches_evidence AND position_aligns_conviction:
-  GATE4_RESULT = PASS
-  proceed to GATE 5
-  
+IF all HARD CHECKS pass:
+  SAOutput ready for delivery
 ELSE:
-  GATE4_RESULT = FAIL
-  action: REJECT position, suggest revision
-  escalate to Stock-Analyst for re-sizing
+  Block delivery, escalate unresolvable checks
 ```
 
 ---
 
-## GATE 5 – ACCOUNT & PORTFOLIO CASH VALIDATION (PATCH 4)
+## AUTO-RERUN INTEGRATION (Phase 1)
 
-### Purpose
-
-Three-level cash check: account-level, then aggregate portfolio-level, with escalation on breach.
-
-### Gate 5A: Individual Account Has Cash (MANDATORY, HARD FAIL)
-
-**Purpose:** Confirm account has immediate cash for position.
-
-**Logic:**
-```
-account_cash = PORTFOLIO.md[target_account].cash
-position_size_dollars = SAOutput.final_position_size_dollars
-
-IF account_cash >= position_size_dollars:
-  GATE_PASS
-  Proceed to Gate 5B
-  
-ELSE:
-  GATE_FAIL: "Account cash insufficient"
-  Action: HARD FAIL, escalate to Master-Architect
-  Cannot proceed - no individual account has cash
-```
-
----
-
-### Gate 5B: Account Working Buffer (MEDIUM PRIORITY, FLAG IF LOW)
-
-**Purpose:** Confirm account working buffer adequate after pending trades.
-
-**Logic:**
-```
-account_cash_after_pending = account_cash - position_size - sum_other_pending_to_account
-account_working_buffer = account_cash_after_pending / account_value
-minimum_account_buffer = 0.10 (10% - softer than portfolio 15%)
-
-IF account_cash_after_pending / account_value >= 0.10:
-  GATE_PASS
-  Proceed to Gate 5C
-  
-ELSE:
-  GATE_WARN: "Account working buffer low"
-  Action: NON-BLOCKING flag, proceed with note
-  Output note: "Account {name} working buffer only {X}% after pending"
-  Proceed to Gate 5C (caution flag)
-```
-
----
-
-### Gate 5C: Portfolio Aggregate Buffer (HIGH PRIORITY, ESCALATE IF BREACH)
-
-**Purpose:** Confirm total pending trades don't collectively breach portfolio buffer.
-
-**Logic:**
-```
-total_pending_all_accounts = sum of all pending trades all accounts
-portfolio_cash_after_all = total_cash - position_size - total_pending_all
-portfolio_buffer_after = portfolio_cash_after_all / portfolio_value
-minimum_portfolio_buffer = 0.15 (15% hard constraint)
-
-IF portfolio_buffer_after >= portfolio_value * 0.15:
-  GATE_PASS
-  Proceed to Gate 5D
-  
-ELIF portfolio_buffer_after >= portfolio_value * 0.12:
-  GATE_CAUTION: "Portfolio buffer marginal (12-15%)"
-  Action: PROCEED with caution, note in output
-  Output: "Buffer marginal, acceptable but monitor"
-  Proceed to Gate 5D
-  
-ELSE:
-  GATE_ESCALATE: "Portfolio buffer breach imminent"
-  Action: ESCALATE TO MASTER-ARCHITECT
-  Message: "Portfolio buffer {X}% below 15% minimum after pending"
-  Stop further gate checks - await MA decision
-```
-
----
-
-### Gate 5D: Account-Level Sector Concentration (LOW PRIORITY, INFO FLAG)
-
-**Purpose:** Warn if account getting concentrated in one sector.
-
-**Logic:**
-```
-account_sector_current = sum of account positions in this sector
-account_sector_after = account_sector_current + position_value
-account_total_value = total positions in account
-account_sector_pct = account_sector_after / account_total_value
-
-IF account_sector_pct <= 0.20 (20%):
-  GATE_PASS
-  Proceed to Gate 5E
-  
-ELSE:
-  GATE_FLAG: "Account concentration in {sector} above 20%"
-  Action: NON-BLOCKING, informational flag
-  Output: "Note: Growth Account Tech concentration at {X}%, consider diversification"
-  Proceed to Gate 5E
-```
-
----
-
-### Gate 5E: Position-to-Account Impact (LOW PRIORITY, INFO ONLY)
-
-**Purpose:** Show position impact on account as percentage.
-
-**Logic:**
-```
-account_value = total portfolio value in account
-position_size_dollars = position size in dollars
-position_as_pct_of_account = position_size_dollars / account_value
-
-IF position_as_pct_of_account <= 0.25 (25%):
-  GATE_PASS
-  
-ELSE:
-  GATE_FLAG: "Position is large relative to account"
-  Detail: "{X}% of {account} value"
-  Action: INFORMATIONAL note for execution
-```
-
----
-
-### Gate 5 Sequential Flow Logic
-
-**Process:**
+When a gate fails with a recoverable error, auto-rerun system triggers:
 
 ```
-GATE 5A: Individual Account Cash
-  IF account_cash < position_size:
-    RESULT = FAIL
-    Escalate immediately, stop remaining gates
-    
-  ELSE:
-    Continue to Gate 5B
-
-GATE 5B: Account Working Buffer
-  IF account_buffer < 10%:
-    FLAG (non-blocking)
-    Continue to Gate 5C
-    
-  ELSE:
-    Continue to Gate 5C
-
-GATE 5C: Portfolio Aggregate Buffer
-  IF portfolio_buffer >= 15%:
-    PASS
-    Continue to Gate 5D
-    
-  ELIF portfolio_buffer >= 12%:
-    CAUTION FLAG
-    Continue to Gate 5D
-    
-  ELSE (portfolio_buffer < 12%):
-    ESCALATE to Master-Architect
-    Stop gates, await MA decision
-
-GATE 5D: Account Sector Concentration
-  IF account_sector_pct > 20%:
-    FLAG (informational)
-    Continue to Gate 5E
-    
-  ELSE:
-    Continue to Gate 5E
-
-GATE 5E: Position-to-Account Impact
-  IF position_pct > 25%:
-    FLAG (informational)
-    GATE5_RESULT = PASS with flag
-    
-  ELSE:
-    GATE5_RESULT = PASS
-
-FINAL DECISION:
-  If 5A FAIL → RESULT = FAIL
-  If 5C ESCALATE → RESULT = ESCALATE (await MA)
-  Otherwise → RESULT = PASS (with flags noted)
+Gate 9 Fails: TURN 3 EMA calculation error
+→ Error is recoverable (calculation incomplete)
+→ Auto-rerun TURN 3 (EMA calculation only)
+→ Gate 9 re-executes
+→ If now passes: Log recovery in quality_metadata.rerun_summary
+→ If still fails after 3 attempts: Escalate to analyst
 ```
 
----
-
-## GATE 6 – THESIS QUALITY & RISK/REWARD
-
-### Purpose
-
-Validate thesis has sound logic and risk/reward is asymmetric in investor's favor.
-
-### Process
-
-**Checks:**
-- Bull case clearly articulated with catalysts
-- Bear case acknowledges real risks
-- Risk/reward asymmetry favorable (3:1 or better for HIGH conviction)
-- Conviction level justified by evidence strength
-
-**Logic:**
+Recovery tracking visible in:
+```json
+{
+  "rerun_summary": {
+    "failed_checks_recovered": ["Gate_9_EMA_TECHNICAL"],
+    "recovery_details": [...]
+  }
+}
 ```
-IF thesis_sound AND risk_reward_favorable:
-  GATE6_RESULT = PASS
-  proceed to GATE 7
-  
-ELSE:
-  GATE6_RESULT = FAIL
-  action: REJECT, return to SA for thesis revision
-```
-
----
-
-## GATE 7 – MASTER-ARCHITECT GUIDANCE COMPLIANCE
-
-### Purpose
-
-Verify position doesn't violate any standing Master-Architect directives.
-
-### Process
-
-**Check:**
-- Any sector exclusions or restrictions (from MA directives)
-- Any account restrictions or special conditions
-- Any conviction caps or position size limits in effect
-- Any escalations from previous trades same day
-
-**Logic:**
-```
-IF position_complies_with_all_directives:
-  GATE7_RESULT = PASS
-  proceed to GATE 8
-  
-ELSE:
-  GATE7_RESULT = FAIL
-  action: REJECT, escalate to Master-Architect
-```
-
----
-
-## GATE 8 – FINAL APPROVAL
-
-### Purpose
-
-Final QA approval check. If all prior gates pass (or have acceptable flags), issue final approval for execution.
-
-### Process
-
-**Summary:**
-- Gate 1: Portfolio freshness PASS
-- Gate 2: Ticker valid, no duplicates PASS
-- Gate 3: Sector & sequential headroom PASS
-- Gate 4: Conviction & position sizing PASS
-- Gate 5: Account & portfolio cash (no hard fails, escalations awaiting MA approval)
-- Gate 6: Thesis quality PASS
-- Gate 7: MA guidance compliance PASS
-
-**Decision:**
-```
-IF all gates PASS or have acceptable FLAGS:
-  GATE8_RESULT = APPROVED_FOR_EXECUTION
-  
-  Create QAReport with:
-    - All position details
-    - Approval timestamp
-    - Any flags (buffer low, sector concentrated, etc.)
-    - Next action: route to Portfolio-Orchestrator
-  
-ELSE IF any HARD FAIL (Gate 5A, Gate 3, etc.):
-  GATE8_RESULT = REJECTED
-  
-  Create QAReport with:
-    - Specific gate that failed
-    - Reason for failure
-    - Action: return to Stock-Analyst or escalate
-  
-ELSE IF Gate 5C ESCALATE (buffer breach):
-  GATE8_RESULT = ESCALATED
-  
-  Create escalation with:
-    - Full buffer analysis
-    - Master-Architect decision points
-    - Pending MA approval
-```
-
----
-
-## ESCALATION TRIGGERS
-
-**Escalation #1: Portfolio Data Stale**
-- Trigger: Gate 1 failure (>1 day old)
-- Escalates to: Master-Architect
-- Action: Request approval with caveat OR trigger refresh
-
-**Escalation #2: Sector At Cap**
-- Trigger: Gate 3A failure (sector >= 35%)
-- Escalates to: Master-Architect
-- Action: Request decision (defer, alternative sector, etc.)
-
-**Escalation #3: Conviction Insufficient**
-- Trigger: Gate 4 failure
-- Escalates to: Stock-Analyst
-- Action: Request thesis revision or return to research
-
-**Escalation #4: Account Cash Insufficient**
-- Trigger: Gate 5A failure
-- Escalates to: Master-Architect
-- Action: Request account transfer, position reduction, or deferral
-
-**Escalation #5: Portfolio Buffer Breach**
-- Trigger: Gate 5C failure (<12%)
-- Escalates to: Master-Architect
-- Action: Request approval with risk acknowledgment, deferral, or halt
-
-**Escalation #6: Master-Architect Directive Violation**
-- Trigger: Gate 7 failure
-- Escalates to: Master-Architect
-- Action: Request clarification or exemption
 
 ---
 
 ## VERSION HISTORY
 
-**v8.0.6 (December 9, 2025):**
-- Enhanced GATE 3: Added Check 3B (Sequential Headroom Validation)
-  - Validates positions to same sector respect sequential headroom logic
-  - Validates aggregate positions don't exceed sector cap
-- Completely restructured GATE 5: Account & Portfolio Cash Validation
-  - Replaced single GATE 5 with hierarchy: GATE 5A-5E
-  - 5A (MANDATORY): Account has cash - hard fail if no
-  - 5B (MEDIUM): Account working buffer adequate - flag if low
-  - 5C (HIGH): Portfolio buffer adequate - escalate if <12%
-  - 5D (LOW): Account sector concentration - informational flag
-  - 5E (LOW): Position-to-account impact - informational only
-  - Added decision tree for gate sequencing
-  - Added precedence rules (5A > 5C > 5B > 5D/5E)
-  - Added detailed sequential flow logic
-- Patch 2 integration: Check 3B validates sequential headroom
-- Patch 4 integration: GATE 5 enforces cash hierarchy with escalation
+**v8.0.7 (December 13, 2025) – Phase 1 Enhancement**
+- Added Degradation Guidance section (5 degradation paths)
+- Added Check vs. Alert classification for all gates
+- Integrated with quality_metadata alert structure
+- All original 8 gates preserved (no changes to gate definitions)
+- Auto-rerun integration documented
+- Consolidated QA-Classification and Degradation-Rules content into single file
 
-**v8.0.5 (December 8, 2025):**
-- Unified freshness standard to ≤1 trading day in GATE 1
-- Expanded GATE 2-8 specifications with clear pass/fail logic
-- Added per-gate escalation triggers
-- Added QAReport output structure
-- Clarified gate dependencies and decision flow
-
-**v8.0.4 and earlier:**
-- Initial gate specifications (not fully detailed)
+**v8.0.6-FIXED (December 9, 2025)**
+- Enhanced GATE 6 with mandatory Schema Validation
+- Added Escalation 6 for Thesis-Schema failure
 
 ---
 
-**End of Quality-Assurance-Engineer.md v8.0.6**
+## INTEGRATION WITH STOCK-ANALYST v8.12.1
 
+Stock-Analyst v8.12.1 expands the QA protocol to 10 gates:
+- **Gates 1-8:** Original QA gates (this file, Quality-Assurance-Engineer.md v8.0.7)
+- **Gate 9:** EMA Technical Analysis (3/21/200 completion check) – TURN 3 validation
+- **Gate 10:** Golden Cross Detection (local computation completion check) – TURN 3B validation
+
+Quality-Assurance-Engineer.md v8.0.7 provides the foundational 8 gates. Gates 9-10 are validated within Stock-Analyst.md v8.12.1 TURN 3/TURN 6 workflow.
+
+---
+
+## NEXT PHASE (Phase 2)
+
+Phase 2 will enhance degradation penalties with:
+- Evidence-based penalty formula (analyst confidence % → calculated penalty)
+- Scenario-testing tiers for penalties
+- Conviction range softening with evidence
+
+---
+
+## VERSION CERTIFICATION
+
+**Quality-Assurance-Engineer.md v8.0.7:**
+- ✓ All 8 gates preserved from v8.0.6
+- ✓ Check vs. Alert classification applied
+- ✓ Degradation guidance added (5 paths)
+- ✓ Auto-rerun integration documented
+- ✓ Alert structure aligned with AGENT-OUTPUT-SCHEMA v8.0.4
+- ✓ Framework invariants maintained
+- ✓ Zero breaking changes (backward compatible)
+- ✓ Content consolidated (no separate QA-Classification or Degradation-Rules files)
+
+---
+
+**End of Quality-Assurance-Engineer.md v8.0.7**

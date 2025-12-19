@@ -1,14 +1,49 @@
-# Portfolio-Orchestrator.md v8.0.3
+# Portfolio-Orchestrator.md v8.0.4
 
-**Version:** v8.0.3 - Sequential Execution & Refresh Timing  
-**Status:** Complete, ready for upload  
-**Last Updated:** December 9, 2025, 12:40 PM MST
+**Version:** v8.0.4 - Trade Validation & Recommendation Engine  
+**Status:** Complete, ready for deployment  
+**Last Updated:** December 15, 2025, 5:52 PM MST  
 
 ---
 
 ## OVERVIEW
 
-Portfolio-Orchestrator is responsible for pre-execution validation, sequential trade execution, cash buffer monitoring, and escalation management. PO receives approved positions from Quality-Assurance and manages the entire execution workflow through STEP 1-8.
+Portfolio-Orchestrator is a **trade validation and recommendation engine** that prepares trades for human execution. It receives approved positions from Quality-Assurance, validates them against portfolio constraints, and generates a recommendation report for human trader review and execution.
+
+### Architectural Principle: HUMAN-IN-THE-LOOP
+
+**Portfolio-Orchestrator does NOT execute trades.** Instead:
+
+- ✅ **Validates** trades against constraints (cash buffer, sector caps, position limits)
+- ✅ **Flags risks** and conflicts to human trader
+- ✅ **Generates recommendation report** (SAFE / CONDITIONAL / BLOCKED)
+- ✅ **Routes to human trader** for final approval
+- ✅ **Monitors execution post-trade** and logs audit trail
+
+### Why Human-in-the-Loop?
+
+1. **Perplexity has no broker API access** (security, licensing constraints)
+2. **eTrade requires human authorization** (compliance, 2FA, audit trail)
+3. **Human trader makes final execution decision** (fiduciary responsibility)
+4. **Trades executed manually on eTrade** by authorized user
+
+### Execution Flow
+
+```
+1. Stock-Analyst produces recommendation (BUY NVDA 12%, conviction 74)
+   ↓
+2. Quality-Assurance validates analysis (APPROVED_FOR_EXECUTION)
+   ↓
+3. Portfolio-Orchestrator validates trade vs. constraints
+   ↓
+4. Human trader reviews Orchestrator's recommendation report
+   ↓
+5. Human trader executes on eTrade manually (with 2FA)
+   ↓
+6. Human trader reports execution to Orchestrator
+   ↓
+7. Orchestrator logs trades, updates PORTFOLIO.md, sets monitoring
+```
 
 ---
 
@@ -16,7 +51,7 @@ Portfolio-Orchestrator is responsible for pre-execution validation, sequential t
 
 ### Purpose
 
-Confirm Portfolio-Persona has latest portfolio state before executing any trades.
+Confirm Portfolio-Persona has latest portfolio state before validating any trades.
 
 ### Process
 
@@ -40,11 +75,11 @@ ELSE:
 
 ---
 
-## STEP 2 – PRE-EXECUTION VALIDATION & REFRESH TIMING
+## STEP 2 – PRE-VALIDATION ANALYSIS & REFRESH TIMING
 
 ### Purpose
 
-Final validation before execution. Check for any portfolio changes since QA approval. Determine if refresh is needed.
+Final validation before recommending execution. Check for any portfolio changes since QA approval. Determine if refresh is needed.
 
 ### Step 2A: Sector Allocation Update Check
 
@@ -89,9 +124,9 @@ ELSE:
 
 ---
 
-### Step 2C: Refresh Timing for Execution Sequencing (PATCH 3)
+### Step 2C: Refresh Timing for Validation Sequencing
 
-**Purpose:** Ensure portfolio data is current before executing sequence of multiple trades.
+**Purpose:** Ensure portfolio data is current before recommending sequence of multiple trades.
 
 **Decision Logic:**
 
@@ -120,7 +155,7 @@ ELIF trading_days_elapsed <= 1 AND time_elapsed > 2 hours:
   
   ELIF refresh pending after 10 min:
     Proceed with caveat: "Portfolio data >2 hours old"
-    Note in execution: sector allocation may have shifted
+    Note in recommendation: sector allocation may have shifted
   
   IF delay >15 min:
     Escalate to Master-Architect
@@ -128,21 +163,21 @@ ELIF trading_days_elapsed <= 1 AND time_elapsed > 2 hours:
 
 ELSE (trading_days_elapsed > 1):
   PORTFOLIO_STATE = TOO_STALE
-  ACTION: Halt execution, trigger FULL_REFRESH
+  ACTION: Halt validation, trigger FULL_REFRESH
   (Existing logic unchanged)
 ```
 
-**Implication:** Sequential execution may trigger refresh if data aged >2 hours same day.
+**Implication:** Validation of sequential trades may trigger refresh if data aged >2 hours same day.
 
 ---
 
-## STEP 3 – SEQUENTIAL TRADE EXECUTION (APPROVAL ORDER) – PATCH 3
+## STEP 3 – VALIDATE TRADES & PREPARE RECOMMENDATIONS (APPROVAL ORDER)
 
 ### Purpose
 
-Execute approved trades in QA approval order with buffer validation between executions.
+Validate approved trades in QA approval order against constraints. Prepare recommendation report for human execution.
 
-### Step 3A: Prepare Execution Queue
+### Step 3A: Prepare Validation Queue
 
 **Input:** QAReport trades from Quality-Assurance-Engineer (Gate 8: APPROVED_FOR_EXECUTION)
 
@@ -154,101 +189,108 @@ pending_trades_queue = [
   Trade_2 (approval_timestamp: 1:15 PM),
   Trade_3 (approval_timestamp: 1:30 PM),
   ...
-]
-
-# Queue already ordered by approval_timestamp
-# NO resorting by size/conviction/fee (Patch 3 Design Decision)
-# Execute in this exact sequence
+]... # Queue already ordered by approval_timestamp
+# NO resorting by size/conviction/fee (Design Decision)
+# Validate in this exact sequence
 ```
 
 **Rationale:**
 - Approval timestamp is governance control point (v8 principle)
 - QA validated aggregate at Gate 5C (approval time)
 - Each trade safe individually; aggregate safe at approval
-- Execution order matches approval order (clear governance)
+- Validation order matches approval order (clear governance)
 - Simpler, clearer, more maintainable
 
 ---
 
-### Step 3B: Initialize Execution Context
+### Step 3B: Initialize Validation Context
 
 ```
-execution_context = {
-  trades_to_execute: pending_trades_queue,
-  trades_executed: [],
-  trades_halted: [],
+validation_context = {
+  trades_to_validate: pending_trades_queue,
+  trades_safe: [],
+  trades_conditional: [],
+  trades_blocked: [],
   escalations: [],
   portfolio_start: PORTFOLIO.md.current(),
-  execution_start_time: NOW(),
+  validation_start_time: NOW(),
   buffer_start: calculate_buffer(PORTFOLIO.md)
 }
 ```
 
 ---
 
-### Step 3C: Sequential Execution Loop
+### Step 3C: Sequential Validation Loop
 
 ```python
 FOR each trade in pending_trades_queue:
   
-  print(f"Executing trade: {trade.ticker} ${trade.size_dollars}")
+  print(f"Validating trade: {trade.ticker} ${trade.size_dollars}")
   
-  # Execute order to broker
+  # Validate trade against constraints
   TRY:
-    order_result = broker_api.execute_order(
+    recommendation = validate_and_prepare_recommendation(
       ticker=trade.ticker,
       dollars=trade.size_dollars,
-      account=trade.account
+      account=trade.account,
+      portfolio_state=PORTFOLIO.md
     )
     
-    trade.execution_price = order_result.price
-    trade.execution_quantity = order_result.quantity
-    trade.execution_timestamp = order_result.timestamp
-    
   EXCEPT:
-    # Broker error - log and continue
-    trade.status = "EXECUTION_FAILED"
+    # Validation error - flag and escalate
+    trade.status = "VALIDATION_FAILED"
+    trade.recommendation = "BLOCKED"
     escalations.append(trade)
     CONTINUE to next trade
   
-  # Recalculate buffer after this execution
-  NEW_CASH = PORTFOLIO.md.total_cash - trade.size_dollars
-  NEW_BUFFER_PCT = NEW_CASH / PORTFOLIO.md.total_value
+  # Recalculate buffer impact
+  HYPOTHETICAL_CASH = PORTFOLIO.md.total_cash - trade.size_dollars
+  HYPOTHETICAL_BUFFER_PCT = HYPOTHETICAL_CASH / PORTFOLIO.md.total_value
   
-  # Evaluate buffer status
-  IF NEW_BUFFER_PCT >= 0.15:
-    # Buffer intact
-    execution_context.trades_executed.append(trade)
+  # Evaluate buffer impact
+  IF HYPOTHETICAL_BUFFER_PCT >= 0.15:
+    # Buffer intact - safe to execute
+    trade.recommendation = "SAFE_TO_EXECUTE"
+    trade.buffer_after = HYPOTHETICAL_BUFFER_PCT
+    validation_context.trades_safe.append(trade)
     CONTINUE to next trade
   
-  ELIF NEW_BUFFER_PCT >= 0.12:
-    # Buffer marginal (caution threshold)
-    execution_context.trades_executed.append(trade)
-    Log caveat: "Buffer marginal"
+  ELIF HYPOTHETICAL_BUFFER_PCT >= 0.12:
+    # Buffer marginal - conditional recommendation
+    trade.recommendation = "CONDITIONAL"
+    trade.caveat = "Buffer marginal after execution"
+    trade.buffer_after = HYPOTHETICAL_BUFFER_PCT
+    validation_context.trades_conditional.append(trade)
     
     # Check if NEXT trade would breach further
     IF remaining_trades_count > 0:
       next_trade = remaining_trades[0]
-      hypothetical_cash = NEW_CASH - next_trade.size_dollars
-      hypothetical_buffer = hypothetical_cash / PORTFOLIO.md.total_value
+      hypothetical_cash_next = HYPOTHETICAL_CASH - next_trade.size_dollars
+      hypothetical_buffer_next = hypothetical_cash_next / PORTFOLIO.md.total_value
       
-      IF hypothetical_buffer < 0.12:
-        # Next would breach threshold
-        HALT remaining trades
-        ESCALATE to Master-Architect
-        BREAK loop
+      IF hypothetical_buffer_next < 0.12:
+        # Next would breach threshold - flag sequencing issue
+        trade.sequencing_warning = "Next trade would breach buffer threshold"
   
-  ELSE (NEW_BUFFER_PCT < 0.12):
-    # Buffer breach imminent
-    execution_context.trades_executed.append(trade)
-    execution_context.trades_halted.extend(remaining_trades)
+  ELSE (HYPOTHETICAL_BUFFER_PCT < 0.12):
+    # Buffer breach - blocked
+    trade.recommendation = "BLOCKED"
+    trade.reason = "Cash buffer would breach minimum (15%)"
+    trade.buffer_after = HYPOTHETICAL_BUFFER_PCT
+    validation_context.trades_blocked.append(trade)
     
     escalations.append({
       trigger: "buffer_breach",
-      buffer_after: NEW_BUFFER_PCT,
-      action: "HALT remaining, ESCALATE to MA"
+      trade: trade.ticker,
+      buffer_after: HYPOTHETICAL_BUFFER_PCT,
+      action: "ESCALATE_TO_MA"
     })
     
+    # Subsequent trades also blocked due to sequencing
+    remaining_trades.forEach(t => {
+      t.recommendation = "BLOCKED_BY_SEQUENCING"
+      validation_context.trades_blocked.append(t)
+    })
     BREAK loop
 
 END FOR
@@ -256,54 +298,105 @@ END FOR
 
 ---
 
-### Step 3D: Handle Escalations
+### Step 3D: Generate Trade Recommendation Report
 
-When buffer breach occurs:
-- HALT remaining trades
-- ESCALATE to Master-Architect
-- Await MA decision: Approve, Defer, Halt
-- Resume execution per MA decision
+**Output:** Trade Recommendation Report
+
+**Format:**
+
+```
+TRADE VALIDATION REPORT
+Timestamp: [ISO 8601 timestamp]
+Portfolio State: [portfolio value, cash, buffer %]
+
+RECOMMENDATION: SAFE_TO_EXECUTE / CONDITIONAL / BLOCKED
+
+TRADE DETAILS:
+  Ticker: NVDA
+  Amount: $87,000 (12% allocation)
+  Current Sector: Technology (28% allocation)
+  Post-Trade Sector: Technology (40% allocation) ⚠️ EXCEEDS CAP
+
+VALIDATION RESULTS:
+  ✓ Position size within limits (≤15%)
+  ✓ Cash available for purchase
+  ✓ Account authorized
+  ✓ Security not on restricted list
+  ⚠️ Technology sector allocation would reach 40% (cap 35%)
+  ✓ Cash buffer maintained at 24%
+
+CONSTRAINT IMPACTS:
+  - Sector Allocation: Would exceed Technology cap by 5%
+  - Cash Buffer: 24% (healthy, >15% minimum)
+  - Buying Power: Sufficient ($87K available from $260K cash)
+
+RECOMMENDATION: CONDITIONAL
+
+  Status: Approved for execution, but requires action on sector allocation
+  
+  Options:
+    A) Reduce another Technology position first (e.g., TQQQ 8% → 5%)
+       Then execute NVDA 12% → Net Tech impact: 40% → 40% (at cap)
+    B) Accept 40% Technology allocation (exceeds cap, escalate to Master-Architect)
+    C) Reduce NVDA position to 10% instead of 12%
+       Then execute NVDA 10% → Net Tech impact: 38% (within cap)
+  
+  Human Action Required: 
+    Choose option A, B, or C, then report decision back to Orchestrator
+    
+  Orchestrator Action After Human Decision:
+    - If option A: Validate TQQQ reduction, then validate NVDA addition
+    - If option B: Escalate to Master-Architect for cap exception approval
+    - If option C: Validate reduced NVDA position size
+
+EXECUTION SEQUENCE (IF APPROVED):
+  1. [If needed] Execute position reduction per human choice
+  2. Execute NVDA buy order on eTrade
+  3. Report execution completion to Orchestrator
+  4. Orchestrator logs trades and updates PORTFOLIO.md
+
+NEXT STEPS:
+  Human trader review and decision required
+  Expected response time: 15-30 minutes
+```
 
 ---
 
-### Step 3E: Set Stop-Loss & Profit Targets
+### Step 3E: Handle Escalations
 
-For each executed trade:
-- Place stop-loss order at broker
-- Place profit target orders per SAOutput specifications
-- Record orders in execution log
-
----
-
-### Step 3F: Update Execution Log
-
-Log all trades executed with:
-- Execution price, quantity, timestamp
-- Account, sector, conviction
-- Stop-loss and profit target details
-- Buffer status after execution
+When validation flags issues:
+- Escalation #1: Sector cap breach → Escalate to Master-Architect
+- Escalation #2: Buffer would breach → Escalate to Master-Architect
+- Escalation #3: Constraint conflict → Escalate to Master-Architect
+- Await MA decision: Approve exception, Defer, Block
+- Update recommendation report per MA decision
 
 ---
 
-### Step 3G: Route to STEP 4
+### Step 3F: Publish Recommendation Report
 
-Continue workflow: STEP 4 (Monitor Fill & Slippage) → STEP 5-8
+**Route to:**
+- Human trader (for execution decision)
+- Master-Architect (if escalations present)
+- Audit log (for compliance trail)
+
+**Format:** JSON + human-readable summary
 
 ---
 
-## STEP 4 – MONITOR FILL & SLIPPAGE
+## STEP 4 – MONITOR EXECUTION (POST-HUMAN EXECUTION)
 
 ### Purpose
 
-Track execution quality. Monitor for slippage and fill rate anomalies.
+After human trader executes on eTrade, track execution quality.
 
 ### Process
 
-**For each trade:**
-- Compare execution_price to last_known_market_price at submission
-- Calculate slippage = execution_price - order_price (in basis points)
+**For each trade human reports as executed:**
+- Log execution price vs. last_known_market_price at submission
+- Calculate slippage = execution_price - recommendation_price (in basis points)
 - Check fill_quantity vs. order_quantity (partial fills?)
-- Log any unusual execution characteristics
+- Log execution characteristics
 
 **Escalation Trigger:**
 - Slippage > 50 basis points → Log and flag
@@ -316,7 +409,7 @@ Track execution quality. Monitor for slippage and fill rate anomalies.
 
 ### Purpose
 
-Verify sector allocations remain within 35% cap after all executions.
+Verify sector allocations remain within 35% cap after all human executions.
 
 ### Process
 
@@ -340,7 +433,7 @@ ELSE:
 
 ### Purpose
 
-Verify portfolio cash buffer remains above 15% minimum after all executions.
+Verify portfolio cash buffer remains above 15% minimum after all human executions.
 
 ### Process
 
@@ -424,42 +517,48 @@ Route execution report to appropriate parties. Set monitoring schedule.
 - Escalates to: Master-Architect
 - Action: Request approval with caveat OR adjust execution queue
 
-**Escalation #4: Buffer Breached Post-Execution**
-- Trigger: Buffer drops below 12% after trade execution
-- Escalates to: Master-Architect
-- Action: HALT remaining trades, await decision
-
-**Escalation #5: Sector Cap Breach**
+**Escalation #4: Sector Cap Breach**
 - Trigger: Post-trade sector allocation > 35%
 - Escalates to: Master-Architect
 - Action: Request clarification OR rebalance positions
 
-**Escalation #6: Execution Failed at Broker**
-- Trigger: Broker rejects order (insufficient buying power, restricted list, etc.)
+**Escalation #5: Execution Failed**
+- Trigger: Human reports execution failed at eTrade
 - Escalates to: Master-Architect
 - Action: Request alternative account, size reduction, or deferral
+
+**Escalation #6: Validation Conflict**
+- Trigger: Trade fails multiple validation checks
+- Escalates to: Master-Architect
+- Action: Request override decision or defer trade
 
 ---
 
 ## VERSION HISTORY
 
+**v8.0.4 (December 15, 2025):**
+- Renamed to "Trade Validation & Recommendation Engine"
+- Clarified HUMAN-IN-THE-LOOP architecture throughout
+- Added "Architectural Principle: HUMAN-IN-THE-LOOP" section
+- Removed misleading "broker_api.execute_order(...)" language
+- Changed STEP 3 pseudocode to "validate_and_prepare_recommendation(...)"
+- Updated all references from "execute" to "validate and recommend"
+- Added "Human Execution Mapping" with recommendation options (SAFE/CONDITIONAL/BLOCKED)
+- Added compliance notes (Perplexity/eTrade constraints)
+- Updated STEP 4-8 to reflect post-human-execution monitoring
+- Updated error handling: "Validation error" instead of "Broker error"
+- All v8.0.3 logic unchanged (backward compatible)
+
 **v8.0.3 (December 9, 2025):**
 - Enhanced STEP 2: Added Step 2C (Refresh Timing for Sequencing)
-  - Trigger QUICK_REFRESH if portfolio data >2 hours old (same trading day)
-  - Ensures sector allocations current before sequencing multiple trades
 - Completely replaced STEP 3: Sequential Trade Execution
-  - Execute trades in QA approval order (no resorting)
-  - Validate buffer after each trade execution
-  - Escalate if next trade would drop buffer below 12% threshold
-  - Maintains v8 governance architecture (approval order is control point)
-  - Added Step 3A: Prepare Execution Queue
-  - Added Step 3B: Initialize Execution Context
-  - Added Step 3C: Sequential Execution Loop with detailed broker integration
-  - Added Step 3D: Handle Escalations
-  - Added Step 3E: Set Stop-Loss & Profit Targets
-  - Added Step 3F: Update Execution Log
-  - Added Step 3G: Route to STEP 4
-- Implementation rationale: Approval timestamp is decision point; execution respects approval sequence
+- Added Step 3A: Prepare Execution Queue
+- Added Step 3B: Initialize Execution Context
+- Added Step 3C: Sequential Execution Loop with detailed broker integration
+- Added Step 3D: Handle Escalations
+- Added Step 3E: Set Stop-Loss & Profit Targets
+- Added Step 3F: Update Execution Log
+- Added Step 3G: Route to STEP 4
 
 **v8.0.2 (December 8, 2025):**
 - Unified freshness standard to ≤1 trading day at STEP 1
@@ -473,5 +572,4 @@ Route execution report to appropriate parties. Set monitoring schedule.
 
 ---
 
-**End of Portfolio-Orchestrator.md v8.0.3**
-
+**End of Portfolio-Orchestrator.md v8.0.4**
