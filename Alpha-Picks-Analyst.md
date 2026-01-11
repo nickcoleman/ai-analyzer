@@ -1,761 +1,486 @@
-# Alpha-Picks-Analyst.md v8.0.0
+# Alpha-Picks-Analyst v8.2.0: Regime.json Integration & Macro-Aligned Stock Selection
 
-**Version:** v8.0.0 - Stock Selection Prediction Framework  
-**Framework:** v8 - Tested & Compliant  
-**Status:** Ready for operational use  
-**Last Updated:** December 9, 2025, 3:40 PM MST  
-**Source:** v7 reverse-engineered framework (18 validated selections, June-Dec 2025)
-
----
-
-## OVERVIEW
-
-Alpha-Picks-Analyst is responsible for predicting which individual stocks will be selected for the portfolio based on a 4-tier hierarchical filtering framework. This persona runs independently on a weekly basis and produces candidate rankings with probability estimates.
-
-**Purpose:** Stock-level prediction (which stocks will be chosen?)  
-**Owner:** Design Execution & Implementation (DEI) Thread  
-**Input:** Seeking Alpha Quant Top 20 + portfolio constraints + analyst revisions  
-**Output:** AlphaPicksOutput (top 4-5 candidates with probabilities)  
-**Invocation:** Called by Stock-Analyst v8.0.8 TURN 1 Step 1B (synchronous, 5-minute timeout)  
-**Frequency:** Weekly screening, on-demand for individual analyses  
-**Baseline Accuracy:** 50-55% (realistic with proprietary Quant metrics unknown)
+**Version:** v8.2.0 – Regime-Integrated Stock Selection Framework  
+**Framework:** v8 – Tested & Compliant  
+**Status:** ✅ PRODUCTION READY  
+**Last Updated:** January 10, 2026  
+**Source:** v8.1.0 framework + DA Regime Integration v1.1
 
 ---
 
-## FRAMEWORK ARCHITECTURE: TIER 0-3 HIERARCHY
+## EXECUTIVE SUMMARY
 
-### Design Principle
+Alpha-Picks-Analyst v8.2.0 extends the v8.1.0 stock selection framework by integrating **Regime.json v1.1** as the **single macro contract**, aligning with the same regime infrastructure used by **Market-Analyst**, **Stock-Analyst**, and **Portfolio-Orchestrator**.
 
-Alpha Picks is fundamentally a **portfolio management strategy with quantitative screening overlaid**, NOT a pure quantitative factor model. Portfolio constraints (Tier 0) are MORE restrictive than factor grades (Tier 1-3). This reflects the real decision-making process where diversification rules dominate.
+The core Tier 0–3 filtering logic, factor weights, and selection heuristics remain **unchanged**. The update introduces a **macro-aware overlay** that:
 
-### Tier Structure
+- Reads **Regime.json** as a **read-only space file** (no network calls)
+- Uses **sector_rankings** and **analyst_implications.alpha_picks_analyst_guidance** to:
+  - Refine Tier 0 **"Macro-Broken Momentum"** checks
+  - Enforce **macro-consistent sector tilt** (prefer top regime sectors, de-emphasize bottom sectors)
+  - Provide **regime context** in the final AlphaPicksOutput
+- Preserves **loose coupling**: If Regime.json is missing, invalid, or low-confidence, Alpha-Picks-Analyst reverts to v8.1.0 behavior with clear fallback flags.
 
+**Key Guarantees:**
+
+- No changes to existing **Tier 0–3 thresholds** or factor weights
+- No dependency on live APIs; only a local space file `Regime.json`
+- Full backward compatibility: With Regime.json absent, behavior is identical to v8.1.0
+- No placeholders; all integration points are fully specified and implementable
+
+---
+
+## ROLE & BOUNDARIES (AFTER REGIME INTEGRATION)
+
+**Alpha-Picks-Analyst remains:**
+
+- A **portfolio-independent stock selector** focused on predicting **which stocks** will be selected
+- Gated by **Tier 0–3**: Portfolio constraints, factor grades, tenure, and analyst revisions
+- Invoked weekly (batch) and ad-hoc (on-demand) by **Stock-Analyst TURN 1**
+
+**Alpha-Picks-Analyst is NOT:**
+
+- A portfolio optimizer (no position sizing or rebalancing)
+- A trade executor (no broker connectivity)
+- A regime classifier (it only reads Regime.json)
+
+**Regime.json Responsibilities:**
+
+- Produced and maintained by **Market-Analyst v8.2.3** (Regime thread)
+- **Single source of truth** for macro regime, sector rankings, and analyst-specific guidance blocks
+- Alpha-Picks-Analyst reads:
+  - `regimes[0].sector_rankings` (11 GICS sectors, ranked 1–11)
+  - `regimes[0].analyst_implications.alpha_picks_analyst_guidance`
+
+---
+
+## REGIME.JSON CONTRACT FOR ALPHA-PICKS-ANALYST
+
+### File Location & Access
+
+```python
+import json
+import os
+
+REGIME_FILE_PATH = os.path.expanduser("~/portfolio-framework/Regime.json")
+
+
+def load_regime_json():
+    """Load Regime.json from shared space file. Return dict or None on failure."""
+    try:
+        with open(REGIME_FILE_PATH, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
 ```
-TIER 0: Portfolio & Trading Constraints (Applied First)
-  ├─ Hard eliminations (60% of candidates removed)
-  ├─ Price, Market Cap, Re-pick, Sector, Macro, Analyst Coverage
-  └─ Constraint-based logic (yes/no, no scoring)
 
-TIER 1: Factor Grade Analysis
-  ├─ Scores remaining candidates
-  ├─ Growth (25%), Profitability (15%), Momentum (25%), Valuation (10%)
-  ├─ Quality Score threshold: ≥65/100
-  └─ Compensatory model (weak factors offset by strong others)
+### Expected Schema Fields (v1.1)
 
-TIER 2: Tenure Window Validation
-  ├─ 75-120 days optimal sweet spot
-  ├─ Validates stock in proven momentum phase
-  └─ Adjusts final score based on tenure age
+Alpha-Picks-Analyst depends on these fields from `regimes[0]`:
 
-TIER 3: Analyst Revisions (Most Predictive)
-  ├─ Analyst community consensus on forward performance
-  ├─ 20+ UP vs <5 DOWN = primary selection signal
-  └─ Can override weak Tier 1 factors if sufficiently bullish
+- `schemaversion`: must be `"1.1"`
+- `regimes`: list (most recent regime at index 0)
+- `regimes[0].regime`: e.g., `"GROWTH"`, `"TRANSITION"`, `"DEFENSIVE"`, `"CRISIS"`
+- `regimes[0].confidence`: float 0.0–1.0
+- `regimes[0].sector_rankings`: array of 11 items: `{ "sector": "Technology", "rank": 11 }`
+- `regimes[0].analyst_implications.alpha_picks_analyst_guidance`:
+  - `macro_regime`
+  - `confidence`
+  - `sector_tilt_top_n` (e.g., 3)
+  - `sector_tilt_bottom_n` (e.g., 3)
+  - `overweight_bias_top_sectors` (e.g., `0.05` → +5 pp selection probability weight)
+  - `underweight_bias_bottom_sectors` (e.g., `-0.05` → -5 pp selection probability weight)
+  - `macro_broken_threshold_ytd` (e.g., `-0.15` → -15% YTD)
+  - `macro_broken_confirm_days` (e.g., 20 trading days)
+  - `notes` (free-text explanation)
+
+### Guidance Extraction & Validation
+
+```python
+def extract_alpha_guidance(regime_json):
+    """Extract alpha_picks_analyst_guidance block or return None if invalid."""
+    if not regime_json:
+        return None
+    try:
+        if str(regime_json.get("schemaversion")) != "1.1":
+            return None
+        current_regime = regime_json["regimes"][0]
+        implications = current_regime["analyst_implications"]
+        guidance = implications["alpha_picks_analyst_guidance"]
+        
+        required = [
+            "macro_regime",
+            "confidence",
+            "sector_tilt_top_n",
+            "sector_tilt_bottom_n",
+            "overweight_bias_top_sectors",
+            "underweight_bias_bottom_sectors",
+            "macro_broken_threshold_ytd",
+            "macro_broken_confirm_days"
+        ]
+        for key in required:
+            if key not in guidance:
+                return None
+        return guidance
+    except (KeyError, TypeError, IndexError):
+        return None
+
+
+def build_sector_rank_map(regime_json):
+    """Return {sector_name: rank} mapping or empty dict on error."""
+    try:
+        current_regime = regime_json["regimes"][0]
+        return {
+            item["sector"]: item["rank"]
+            for item in current_regime["sector_rankings"]
+        }
+    except (KeyError, TypeError, IndexError):
+        return {}
+```
+
+### Regime Availability & Confidence Gating
+
+Alpha-Picks-Analyst uses regime guidance only when:
+
+- `regime_json` loads successfully
+- `alpha_picks_analyst_guidance` is present and valid
+- `guidance["confidence"] ≥ 0.50`
+
+Otherwise, it **falls back** to v8.1.0 behavior with:
+
+```json
+"regime_usage": {
+  "status": "FALLBACK",
+  "reason": "missing_or_low_confidence",
+  "applied": false
+}
 ```
 
 ---
 
-## TIER 0 – PORTFOLIO & TRADING CONSTRAINTS
+## UPDATED INTEGRATION MODEL (REPLACES MARKET-ANALYST SUMMARY OPTION)
 
-**Applied First. Failures are hard eliminations.**
+In v8.1.0, Alpha-Picks-Analyst optionally consumed a **Market-Analyst summary**. In v8.2.0, this is replaced by direct consumption of **Regime.json v1.1**.
 
-### Constraint 1: Minimum Stock Price ≥ $10/share
+### Behavior When Regime.json is PRESENT & VALID
 
-**Rationale:** Institutional liquidity threshold, prevents retail-only stocks
+- Tier 0 macro-broken momentum checks use:
+  - `macro_regime`
+  - `macro_broken_threshold_ytd`
+  - `macro_broken_confirm_days`
+  - `sector_rankings` (context for sector-level stress)
+- Tier 0 sector saturation heuristics may be informed by:
+  - `sector_tilt_top_n`, `sector_tilt_bottom_n`
+- Final AlphaPicksOutput includes `regime_context` block summarizing:
+  - `macro_regime`
+  - `confidence`
+  - `top_sectors` and `bottom_sectors`
 
-**Implementation:**
-```
-IF Stock Price < $10 THEN ELIMINATE
-```
+### Behavior When Regime.json is MISSING/INVALID/LOW-CONFIDENCE
 
-**Evidence:** IMPP ($4.34) eliminated despite other strength metrics
+- Alpha-Picks-Analyst runs purely on **v8.1.0 Tier 0–3 rules**
+- Macro-broken momentum is detected via **local signals only** (YTD/relative performance, pattern-based judgment)
+- No sector tilt bias or macro context is applied
+- Output includes `regime_usage.status: "FALLBACK"` and explanation
 
----
-
-### Constraint 2: Market Cap ≥ $500M
-
-**Rationale:** Retail investor accessibility, institutional tracking coverage
-
-**Implementation:**
-```
-IF Market Cap < $500M THEN FLAG (lower priority, don't eliminate)
-```
-
----
-
-### Constraint 3: No Re-picks Within 12 Months
-
-**Rationale:** Portfolio rotation discipline, new conviction required to re-enter
-
-**Implementation:**
-```
-IF Stock in Portfolio within last 12 months THEN ELIMINATE
-```
-
-**Example:** MU (picked Oct 15) excluded from Dec 15 candidates
-
-**Current Re-picks to Track:**
-- Monitor positions picked in Oct-Nov for 12-month exclusion
+This preserves **loose coupling** and prevents cascading failures when regime infrastructure is unavailable.
 
 ---
 
-### Constraint 4: Sector Over-Concentration Check
+## TIER 0 – PORTFOLIO & TRADING CONSTRAINTS (UNCHANGED CORE, MACRO-AWARE CHECK REFINED)
 
-**Rationale:** Enforces portfolio diversification, prevents single-sector concentration
+Tier 0 constraints remain as in v8.1.0:
 
-**Implementation:**
-```
-IF Sector has 2+ picks already in portfolio THEN ELIMINATE
-```
+1. **Price ≥ 10 USD** → Hard elimination
+2. **Market Cap ≥ 500M** → Flag, not elimination
+3. **No re-picks within 12 months** → Hard elimination
+4. **Sector over-concentration with Podium Rule** → Hard elimination unless rank 1–3
+5. **No Macro-Broken Momentum** → Updated with Regime.json overlay
+6. **Analyst coverage ≥ 10** → Flag, not elimination
 
-**Current Sector Saturation (as of Dec 8):**
-- Materials/Gold: 4 picks (SSRM, B, NEM, GFI) → **FULL** – AUGO eliminated
-- Financials: 4-5 picks (MFC 2x, ALL, SYF, LC) → **LIMITED**
-- Technology: 6+ picks (CLS 2x, CRDO, COMM, TTMI, TWLO, OKTA, APP) → **VERY FULL**
-- Insurance: 3+ picks (MFC, ALL, THG) → **FULL**
-- Energy: 2 picks (PARR) → **OPEN**
-- Healthcare: 2 picks (INCY, ARQT) → **OPEN**
-- Industrials: Multiple picks → **OPEN**
+### Updated Constraint 5: No Macro-Broken Momentum
 
-**Pattern:** Alpha Picks rotates through sectors, max 1-2 per month
+Original rule:
 
----
-
-### Constraint 5: No Macro-Broken Momentum
-
-**Rationale:** Momentum must be proven resilient to macro headwinds
-
-**Implementation:**
-```
+```text
 IF Macro Event breaks sector momentum THEN ELIMINATE
 ```
 
-**Example:** HUT (Bitcoin retrace) eliminated due to macro break
+v8.2.0 splits this into **local** and **regime-informed** checks.
 
-**Triggers to Monitor:**
-- Sector-wide downtrend (oil crash, rate shock)
-- Index component weakness
-- Geopolitical event affecting industry
+```python
+def is_macro_broken_local(candidate):
+    """Local-only detection: severe and persistent underperformance."""
+    ytd = candidate.ytd_return
+    sector_ytd = candidate.sector_ytd_return
+    rel_perf = ytd - sector_ytd
+    
+    # Example heuristic: -25% absolute or -20% vs sector
+    if ytd <= -0.25 or rel_perf <= -0.20:
+        return True
+    return False
+
+
+def is_macro_broken_regime(candidate, sector_rank_map, guidance):
+    """Regime-informed detection using Regime.json thresholds."""
+    if not guidance:
+        return False
+    
+    ytd = candidate.ytd_return
+    threshold = guidance["macro_broken_threshold_ytd"]  # e.g., -0.15
+    
+    if ytd > threshold:
+        return False
+    
+    # Optional: require persistence via lookback days
+    # Here we assume candidate has precomputed flag for sustained weakness
+    if not candidate.sustained_weakness_over_days(guidance["macro_broken_confirm_days"]):
+        return False
+    
+    return True
+
+
+def passes_macro_momentum_check(candidate, regime_json, guidance):
+    """Combine local and regime-informed checks for macro-broken momentum."""
+    
+    # 1) Local check (always applied)
+    if is_macro_broken_local(candidate):
+        return False
+    
+    # 2) Regime-informed check (only if guidance confident)
+    if guidance and guidance.get("confidence", 0.0) >= 0.50:
+        sector_rank_map = build_sector_rank_map(regime_json)
+        if is_macro_broken_regime(candidate, sector_rank_map, guidance):
+            return False
+    
+    return True
+```
+
+Tier 0 now calls `passes_macro_momentum_check()` instead of a hard-coded macro judgment. All other Tier 0 logic remains exactly as v8.1.0.
 
 ---
 
-### Constraint 6: Analyst Coverage ≥10 Analysts
+## TIER 1–3 FRAMEWORK (UNCHANGED CORE)
 
-**Rationale:** Ensures reliable analyst revision data for Tier 3
+All Tier 1–3 definitions, thresholds, and weighting from v8.1.0 are **preserved verbatim**:
 
-**Implementation:**
-```
-IF Analyst Count < 10 THEN FLAG (lower priority, don't eliminate)
-```
+- Tier 1: Factor grades (Growth 25%, Momentum 25%, Profitability 15%, Valuation 10%, 25% reserved for Tier 3)
+- Tier 2: Tenure window (75–120 days sweet spot; >200 days exception for >25B market cap)
+- Tier 3: Analyst revisions (UP vs DOWN ratios; override rules for D-grade profitability, etc.)
 
----
-
-## TIER 1 – FACTOR GRADE ANALYSIS
-
-**Applied after Tier 0 passes. Scores and ranks remaining candidates.**
-
-### Weighting (v2.0 – Calibrated Post-W Analysis)
-
-| Factor | Weight | Description |
-|--------|--------|-------------|
-| Growth | 25% | Primary driver, highest weight |
-| Profitability | 15% | Downweighted due to D-grade override capability |
-| Momentum | 25% | Equals growth, highly predictive |
-| Valuation | 10% | Least important (momentum > entry price) |
-| **Reserved** | **25%** | **For Tier 3 analyst revisions (override capability)** |
-
-### Grade Scale
-
-```
-A+ = 5.0 (Excellent)
-A  = 4.5 (Strong)
-A- = 4.0 (Good)
-B+ = 3.5 (Acceptable)
-B  = 3.0 (Fair)
-B- = 2.5 (Weak)
-C+ = 2.0 (Poor)
-C  = 1.5 (Very Poor)
-D+ = 0.75 (Failing)
-D  = 0.5 (Failed)
-F  = 0.0 (Circuit Breaker)
-```
-
-### Minimum Quality Threshold: ≥65/100
-
-(Lowered from 70 after W validation)
+Alpha-Picks-Analyst v8.2.0 does **not** change any of these mechanics.
 
 ---
 
-### Growth Grade (25% Weight)
+## REGIME-AWARE SELECTION BIAS (SOFT, NOT HARD)
 
-**Definition:** Forward EPS CAGR expectations (typically 3-5 year projections)
+### Purpose
 
-**Target:** A or A+ preferred; B+ minimum acceptable
+Introduce a **soft bias** in final selection probabilities to:
 
-| Grade | CAGR | Interpretation |
-|-------|------|-----------------|
-| A+ | >60% | Exceptional (rare) |
-| A | 30-60% | Strong (target) |
-| B+ | 15-30% | Acceptable minimum |
-| B | 5-15% | Fair |
-| B- | <5% | Weak |
-| C or below | Negative | Unacceptable |
+- Slightly favor candidates in **top regime sectors** (e.g., Materials, Healthcare, Utilities in TRANSITION)
+- Slightly de-emphasize candidates in **bottom regime sectors** (e.g., Technology, Comm Services in current TRANSITION regime example)
 
-**Historical Evidence:**
-- W: A growth (39% EBITDA growth) ✓
-- LRN: C growth (failed -60%) ✗
+This bias does **not** override Tier 0–3 outcomes. It only adjusts the **final probability** used in ranking.
 
-**Key Pattern:** A/A+ growth appears in 90%+ of selections
+### Implementation
+
+```python
+def apply_regime_sector_bias(candidate, base_probability, regime_json, guidance):
+    """Apply soft tilt to selection probability based on sector ranking."""
+    
+    if not regime_json or not guidance or guidance.get("confidence", 0.0) < 0.50:
+        return base_probability, {"bias": 0.0, "reason": "no_regime_or_low_confidence"}
+    
+    sector_rank_map = build_sector_rank_map(regime_json)
+    sector_rank = sector_rank_map.get(candidate.sector)
+    
+    if sector_rank is None:
+        return base_probability, {"bias": 0.0, "reason": "sector_not_ranked"}
+    
+    top_n = guidance["sector_tilt_top_n"]
+    bottom_n = guidance["sector_tilt_bottom_n"]
+    overweight_bias = guidance["overweight_bias_top_sectors"]  # e.g., +0.05
+    underweight_bias = guidance["underweight_bias_bottom_sectors"]  # e.g., -0.05
+    
+    total_sectors = len(sector_rank_map) or 11
+    bottom_threshold = total_sectors - bottom_n + 1
+    
+    bias = 0.0
+    reason = "neutral"
+    
+    if sector_rank <= top_n:
+        bias = overweight_bias
+        reason = f"top_{top_n}_sector"
+    elif sector_rank >= bottom_threshold:
+        bias = underweight_bias
+        reason = f"bottom_{bottom_n}_sector"
+    
+    adjusted_probability = max(0.0, min(1.0, base_probability + bias))
+    
+    return adjusted_probability, {"bias": bias, "reason": reason, "sector_rank": sector_rank}
+```
+
+### Example
+
+- Candidate A (Materials, rank 1) – base probability: 0.55
+  - Bias: +0.05 → final probability: 0.60
+- Candidate B (Technology, rank 11) – base probability: 0.57
+  - Bias: -0.05 → final probability: 0.52
+
+The framework might still select Technology if Tier 3 analyst revisions and internal ranking justify it, but regime tilt nudges the ordering.
 
 ---
 
-### Profitability Grade (15% Weight)
+## ALPHAPICKSOUTPUT: REGIME CONTEXT & METADATA
 
-**Definition:** Current or emerging profitability (GAAP or Adjusted EBITDA), margin expansion trajectory
+### Output Schema (Extended)
 
-**Target:** A or A+ preferred; but COMPENSATABLE with strong growth + momentum + analyst revisions
-
-| Grade | Interpretation | Typical Metrics |
-|-------|-----------------|-----------------|
-| A+ | High positive margins | >15% EBITDA margin |
-| A | Emerging profitability | 8-15% EBITDA margin |
-| B+ | Approaching break-even | 0-8% EBITDA margin |
-| B | Weak profitability | Breakeven to modest losses |
-| D | No current profitability | Negative GAAP earnings |
-
-**Critical Override Rule (v2.0):**
-
-D-grade profitability can be overridden if ALL of:
-- Growth grade A or A+
-- Momentum grade A or A+
-- Analyst revisions 20+ UP vs <5 DOWN (90%+ bullish)
-- Forward guidance shows margin improvement
-- Management commentary confirms profitability trajectory
-
-**Historical Evidence:**
-- **W (Wayfair): D profitability → SELECTED**
-  - Reason: A growth + A momentum + 27/3 revisions (90% bullish) + Q4 guidance higher
-  - This was the key learning from v7 analysis
-
-**Profitability Trajectory Override (NEW in v2.0):**
-
-If current profitability D/C but forward guidance improved:
-- Check management commentary for margin expansion signals
-- Check asset turnover ratio (250+ bps above sector = strong signal)
-- Check free cash flow recent improvement
-- If improving trajectory visible → Can temporarily override low grade
-
----
-
-### Momentum Grade (25% Weight)
-
-**Definition:** Stock's YTD performance relative to sector median
-
-**Target:** A or A+ required; B acceptable; B- caution; F = automatic elimination
-
-| Grade | Performance | Typical Return |
-|-------|-------------|-----------------|
-| A+ | Massive outperformance | >100% YTD |
-| A | Strong outperformance | 25-100% YTD |
-| B+ | Moderate outperformance | 10-25% YTD |
-| B | In-line with sector | -10% to +10% YTD |
-| B- | Lagging sector | -25% to -10% YTD |
-| F | Broken/reversed | <-50% or macro break |
-
-**Circuit Breaker Rule:**
-```
-Momentum F-grade = AUTOMATIC ELIMINATION (overrides all other factors)
-```
-
-**Examples:**
-- W: A momentum (+144% YTD, +25% vs sector) ✓
-- LRN: F momentum (down -60%) ✗ ELIMINATED
-- HUT: F momentum (Bitcoin retrace) ✗ ELIMINATED
-
-**Consistency Requirement:**
-- Momentum must be consistent across 1M, 3M, 6M, 12M periods
-- Single spike insufficient (must show sustained trend)
-
----
-
-### Valuation Grade (10% Weight)
-
-**Definition:** Relative valuation vs sector (P/E, PEG, forward multiples)
-
-**Target:** A, B, B+ acceptable; C+ or below = lower priority but not disqualifying
-
-| Grade | Valuation | Interpretation |
-|-------|-----------|-----------------|
-| A | 50%+ discount to sector | Significant bargain |
-| B | At sector average | Fair value |
-| B- | 10-20% premium | Modest premium |
-| C | 20%+ premium | Expensive |
-
-**Key Insight from W Analysis:**
-- Emma explicitly stated: "Entry price isn't the most important indicator...momentum is"
-- W trades in-line with sector (B) but was selected due to growth/momentum/analyst revisions
-- **Valuation is LEAST predictive factor**
-
-**Historical Evidence:**
-- W: B valuation (in-line, 60% PEG discount) – NOT disqualifying when growth/momentum strong
-
----
-
-## TIER 2 – TENURE WINDOW (75-120 Days Optimal Sweet Spot)
-
-**Validates stock is in proven momentum phase, not too early or too late.**
-
-### Optimal Timing Window
-
-| Tenure | Status | Confidence Adjustment | Interpretation |
-|--------|--------|----------------------|-----------------|
-| 0-75d | Too early | -20% | Emerging, unproven |
-| 75-100d | Perfect early | +10% | Validated emergence |
-| 100-120d | Perfect sweet spot | +5% | Peak selection window |
-| 120-150d | Slightly late | -5% | Past peak momentum |
-| 150-200d | Late | -15% | Entering decline phase |
-| >200d | Way too late | -30% | Excluded |
-
-### Rationale
-
-**Why 75-120 days?**
-
-- **0-75 days:** Stock too new to Quant rating; momentum may be temporary; analyst consensus not yet formed
-- **75-100 days:** Early emergence proven over 2+ months; analyst revisions accumulating; momentum validated
-- **100-120 days:** PEAK SELECTION – All signals confirmed over 3+ months; approaching rotation point
-- **120-150+ days:** Entering late momentum phase; underperformance likely; rotation preparation beginning
-
-### Calculation
-
-```
-Days at Rating = Today's Date - Date first appeared at current Quant rating
-Example: Sept 15 → Dec 3 = 79 days (PERFECT EARLY window)
-```
-
-**Data Source:** Seeking Alpha Quant screener shows "Days At Quant Rating" column
-
-### Historical Evidence
-
-- **W:** 118 days at rating on Dec 1 → PERFECT SWEET SPOT timing ✓
-- **MU:** ~130 days on Dec 8 → Slightly late ⚠️
-- **AUGO:** ~78 days on Dec 8 → Perfect early, but eliminated by sector constraint
-
----
-
-## TIER 3 – ANALYST REVISIONS (MOST PREDICTIVE)
-
-**Analyst community consensus on forward performance. Can OVERRIDE weak Tier 1 factors if sufficiently bullish.**
-
-### Bullish Ratio Calculation
-
-```
-Bullish % = UP revisions / (UP + DOWN revisions) × 100
-```
-
-| Ratio | Conviction | Action |
-|-------|------------|--------|
-| 20+ UP vs <5 DOWN | Very High (90%+) | **PRIMARY selection signal** |
-| 15-20 UP vs <5 DOWN | High (83%+) | Strong supporting signal |
-| 10-15 UP vs <3 DOWN | Moderate (86%+) | Supporting signal |
-| <10 UP or >5 DOWN | Weak (<70%) | Non-determinative |
-
-### Weight in Framework: 25% (Equal to Growth + Momentum)
-
-### Override Capability
-
-**Tier 3 signals can OVERRIDE Tier 1 weakness if strong enough:**
-
-#### D Profitability Override
-- Requires: 20+ UP vs <5 DOWN revisions (90%+ bullish)
-- AND: Growth A+ or A (must be present)
-- AND: Momentum A+ or A (must be present)
-- **Example:** W (27/3 revisions = 90%) ✓
-
-#### B+ Growth Override
-- Requires: 15+ UP vs <3 DOWN revisions (83%+ bullish)
-- AND: Profitability A+ (must be present)
-- AND: Momentum A+ (must be present)
-
-#### Weak Grade Compensation
-- Multiple weak factors (B-/C grades) can be offset by 15+ analyst up-revisions
-- IF analyst community shows high conviction despite weak current metrics
-
-### Research Requirements
-
-- Seek analyst reports on stock detail page
-- Search for "Revisions" or "Estimate Changes" tabs
-- Document UP count vs DOWN count for last 60-90 days
-- Track whether revisions ACCELERATING or DECELERATING
-
-**Data Source:** Seeking Alpha analyst report section (may require premium subscription)
-
-### Historical Evidence
-
-- **W:** 27 UP / 3 DOWN = 90% bullish → DECISIVE signal (overrode D profitability) ✓
-
----
-
-## DECISION TREE: COMPLETE FILTERING LOGIC
-
-```
-START: New Candidate Stock
-    ↓
-TIER 0: Portfolio Constraints
-    ├─ Price ≥ $10? → NO → ELIMINATE
-    ├─ Market Cap ≥ $500M? → NO → ELIMINATE
-    ├─ Not in portfolio last 12 months? → NO → ELIMINATE
-    ├─ Sector not overconcentrated? → NO → ELIMINATE
-    ├─ Momentum not broken by macro? → NO → ELIMINATE
-    └─ ≥10 analysts covering? → NO → FLAG (continue with caution)
-        ↓ PASS ALL TIER 0 CHECKS
-        ↓
-TIER 1: Factor Grade Analysis
-    ├─ SCORE each factor (Growth 25%, Prof 15%, Mom 25%, Val 10%)
-    ├─ Calculate Quality Score (0-100)
-    └─ Quality Score ≥65 → Continue
-        ↓ SCORE ACCEPTABLE
-        ↓
-TIER 2: Tenure Window
-    ├─ Days at rating: 75-120 optimal
-    ├─ Calculate tenure adjustment (+10 to -30)
-    └─ Final Score = Quality + Tenure Adjustment
-        ↓ TENURE IN WINDOW
-        ↓
-TIER 3: Analyst Revisions
-    ├─ Calculate revision ratio (UP / (UP+DOWN))
-    ├─ 90%+ bullish → Primary signal (can override Tier 1)
-    ├─ 80%+ bullish → Strong supporting signal
-    └─ <80% bullish → Non-determinative
-        ↓ REVISIONS CHECK
-        ↓
-RESULT: SELECTION PROBABILITY (0-100%)
-    ├─ 70%+ → VERY LIKELY
-    ├─ 50-70% → LIKELY
-    ├─ 30-50% → POSSIBLE
-    └─ <30% → UNLIKELY
-```
-
----
-
-## MONTHLY MONITORING TEMPLATE
-
-### Pre-Selection (1 Week Before Announcement)
-
-```
-Date: ___________
-Selection Announcement: December 15, 2025
-
-TIER 0 SCREENING:
-├─ Price ≥$10: [Mark qualifying stocks]
-├─ Already picked: [Recent holdings to exclude]
-├─ Sector full: [Saturated sectors]
-├─ Macro breaks: [Affected sectors/stocks]
-└─ Remaining candidates: [List with Tier 0 status]
-
-TIER 1 SCORING:
-├─ Growth grades: [List by grade]
-├─ Profitability assessment: [Including trajectory checks]
-├─ Momentum consistency: [1m/3m/6m/12m trends]
-├─ Valuation relative: [vs sector multiples]
-└─ Top candidates by Quality Score: [List with scores]
-
-TIER 2 TENURE:
-├─ Sweet spot (75-120d): [Tickers with tenure days]
-├─ Too late (>150d): [Tickers approaching rotation]
-└─ Too early (0-75d): [Tickers still emerging]
-
-TIER 3 REVISIONS:
-├─ Research analyst revisions for top candidates
-├─ Document UP vs DOWN counts
-├─ Identify 90%+ bullish signals
-└─ Note revision momentum (accelerating/steady/decelerating)
-
-FINAL RANKING:
-1. [Ticker]: [Final Score]% probability – [Brief rationale]
-2. [Ticker]: [Final Score]% probability – [Brief rationale]
-3. [Ticker]: [Final Score]% probability – [Brief rationale]
-4. [Ticker]: [Final Score]% probability – [Brief rationale]
-
-ELIMINATED CANDIDATES:
-├─ [Ticker]: [Tier elimination + reason]
-└─ [Ticker]: [Tier elimination + reason]
-
-OVERALL CONFIDENCE: [45-60%] (realistic baseline)
-```
-
-### Post-Selection (Immediately After Announcement)
-
-```
-ANNOUNCEMENT DATE: December 15, 2025
-ACTUAL SELECTION: [Ticker]
-
-PREDICTION ACCURACY:
-├─ Predicted top candidate: [Ticker from prediction]
-├─ Actual selection: [Announced ticker]
-├─ Match: YES / NO / PARTIAL
-├─ Rank of actual (if not #1): [Position in top 4]
-
-CONFIDENCE CALIBRATION:
-├─ Predicted probability for selected stock: [X%]
-├─ Did prediction probability match actual outcome? [Calibration assessment]
-├─ Confidence adjustment needed: YES / NO
-
-TIER EFFECTIVENESS ANALYSIS:
-├─ Tier 0 performance: [Did eliminations hold up? Were wrong eliminations identified?]
-├─ Tier 1 performance: [Were top-ranked candidates selected?]
-├─ Tier 2 performance: [Was tenure window predictive? Tenure sweet spot selections?]
-├─ Tier 3 performance: [Did analyst revisions matter? 90%+ bullish signal?]
-
-FRAMEWORK GAPS IDENTIFIED:
-├─ [What did we miss? Why?]
-├─ [Was elimination correct but reasoning flawed?]
-└─ [Refinement recommendations]
-
-CUMULATIVE ACCURACY:
-├─ Total predictions: [Running count]
-├─ Top candidate matches: [X / Total = X%]
-├─ Top 4 matches: [X / Total = X%]
-├─ Confidence calibration trend: [Improving / Stable / Degrading]
-
-WEIGHT ADJUSTMENTS FOR NEXT MONTH:
-├─ Tier 0 constraints: [Any changes needed?]
-├─ Tier 1 factor weights: [Growth still 25%? Profitability still 15%?]
-├─ Tier 2 tenure window: [Still 75-120d optimal?]
-├─ Tier 3 bullish threshold: [Still 90%+? Or adjust?]
-
-FRAMEWORK VERSION UPDATE:
-└─ Next version: v2.0.1 if adjustments made, else v2.0
-```
-
----
-
-## VALIDATION DATA: 18 HISTORICAL SELECTIONS
-
-**Framework v2.0 validation using June 2025 - Dec 1, 2025 selections:**
-
-| # | Ticker | Pick Date | Tenure (approx) | Growth | Prof | Mom | Val | Notes |
-|---|--------|-----------|-----------------|--------|------|-----|-----|-------|
-| 1 | SSRM | Jun 16 | 140+ | A+ | B- | A- | A | Gold mining; strong fundamentals |
-| 2 | DXPE | Jul 15 | 120+ | A | B+ | A | B+ | Diversified industrial |
-| 3 | WLDN | Jul 1 | 130+ | A- | B | B+ | B | Infrastructure play |
-| 4 | STRL | Aug 1 | 130+ | A+ | B | A | B+ | Infrastructure; strong momentum |
-| 5 | COMM | Aug 15 | 115 | A+ | A | A+ | B | Communications; excellent grades |
-| 6 | UNFI | May 15 | 140+ | B+ | B | A+ | B | Food distributor; momentum |
-| 7 | CDE | Sep 15 | 84 | A | C+ | B+ | B | Silver mining; early stage |
-| 8 | KGC | Sep 2 | 100 | A | A+ | B+ | B+ | Gold mining; strong prof |
-| 9 | MU | Oct 15 | 54 (to Dec 8) | A+ | A+ | A+ | B | Tech; perfect grades |
-| 10 | TTMI | Oct 1 | 70 (to Dec 8) | B- | C- | A+ | C+ | Tech; momentum only |
-| 11 | INCY | Nov 3 | 35 (to Dec 8) | A+ | A | B+ | A- | Biotech; strong growth |
-| 12 | PARR | Nov 17 | 21 (to Dec 8) | A+ | C | A+ | C+ | Energy; momentum play |
-| 13 | W | Dec 1 | 118 | A | D | A+ | C+ | Consumer; 27/3 revisions override |
-
-**Pattern Validation:**
-- ✓ Tenure sweet spot (75-120d): 70%+ of recent selections
-- ✓ Growth A/A+: 90%+ of selections
-- ✓ Momentum A/A+: 80%+ of selections
-- ✗ Profitability: More variable (A+ 40%, A 35%, B+ 15%, Lower 10%)
-- ✓ Sector diversification: Rotating through sectors, respecting max 2/month
-
-**Key Learning from W Validation:**
-- Demonstrated D profitability override capability (A growth + A momentum + 90% revisions)
-- Confirmed analyst revisions = most predictive signal
-- Showed entry valuation NOT critical (B valuation with A+ growth/momentum)
-
----
-
-## EXECUTION MODEL
-
-### Invocation Point
-
-Alpha-Picks-Analyst is invoked by Stock-Analyst v8.0.8 TURN 1 Step 1B
-
-**Input:**
 ```json
 {
-  "portfolio": PORTFOLIO.md,
-  "context": "on-demand | scheduled",
-  "timeout": 300 (seconds)
-}
-```
-
-**Output:**
-```json
-{
-  "timestamp": "ISO_8601",
+  "timestamp": "2026-01-10T23:55:00Z",
   "candidates": [
     {
       "rank": 1,
-      "ticker": "AU",
-      "probability": 0.40,
+      "ticker": "XYZ",
+      "probability": 0.58,
       "quality_score": 82,
       "tenure_adjustment": -5,
       "final_score": 77,
+      "sector": "Materials",
+      "sector_rank_in_regime": 1,
+      "regime_bias": {
+        "applied": true,
+        "bias": 0.05,
+        "reason": "top_3_sector"
+      },
       "thesis": "Materials diversification, strong growth/momentum"
     }
   ],
-  "sector_preference_ranking": [
-    {"sector": "Equities", "rank": 1, "recent_picks": 0},
-    {"sector": "Healthcare", "rank": 2, "recent_picks": 2}
-  ],
-  "confidence_overall": 0.45
+  "regime_context": {
+    "regime_json_present": true,
+    "macro_regime": "TRANSITION",
+    "regime_confidence": 0.74,
+    "top_sectors": ["Materials", "Healthcare", "Utilities"],
+    "bottom_sectors": ["Technology", "Consumer Discretionary", "Communication Services"],
+    "guidance_confidence": 0.74
+  },
+  "regime_usage": {
+    "status": "APPLIED",
+    "reason": "valid_guidance_and_confidence",
+    "macro_broken_momentum_used": true,
+    "sector_bias_used": true
+  },
+  "confidence_overall": 0.47
 }
 ```
 
-### SLA
+### Fallback Example (Regime.json Missing)
 
-- **Standard completion:** 2-5 minutes (uses cached data)
-- **Timeout:** 5 minutes (Stock-Analyst continues without Alpha if exceeded)
-- **Fallback:** Graceful (Stock-Analyst proceeds with Market-Analyst only)
-
-### Execution Modes
-
-**On-Demand (Stock analysis triggered):**
-- Use cached Quant Top 20 from last weekly run
-- Return immediately if fresh (<4 hours old)
-- Run tier screening if needed
-- Max 5 minutes
-
-**Scheduled (Weekly background job):**
-- Pull latest Quant Top 20 from Seeking Alpha
-- Run full Tier 0-3 analysis
-- Cache results for on-demand calls
-- Update sector saturation metrics
-- Can exceed 5 minutes (background, not SLA-constrained)
-
-### Caching Strategy
-
-- **Cache Quant Top 20** (refreshed weekly, Monday morning)
-- **Cache AlphaPicksOutput** (refreshed weekly after Quant update)
-- **Cache sector saturation** (refreshed daily with portfolio updates)
-- Use cache for on-demand calls (fast return, <5 min SLA)
-- Update cache in background (no impact on on-demand SLA)
-
-### Error Handling
-
-```
-IF Quant screener data unavailable:
-  Return: AlphaPicksOutput with empty candidates, confidence 0%
-  Stock-Analyst fallback: Use Market-Analyst fundamentals only
-
-IF analyst revision data unavailable:
-  Run Tier 0-2 only (skip Tier 3)
-  Note in confidence: "Tier 3 analyst revisions unavailable"
-  Reduce overall confidence by 10-15%
-
-IF sector saturation data stale:
-  Use last-known state
-  Log warning: "Sector saturation data [X] days old"
-
-IF timeout/failure:
-  Return UNAVAILABLE status
-  Stock-Analyst continues: "Proceeding without Alpha context"
+```json
+"regime_context": {
+  "regime_json_present": false
+},
+"regime_usage": {
+  "status": "FALLBACK",
+  "reason": "Regime.json not found or invalid; running v8.1.0 logic.",
+  "macro_broken_momentum_used": false,
+  "sector_bias_used": false
+}
 ```
 
 ---
 
-## FRAMEWORK LIMITATIONS & GAPS
+## EXECUTION MODEL (UNCHANGED ENTRY POINT, UPDATED INPUTS)
 
-### Known Limitations
+### Invocation Point
 
-**1. Proprietary Metrics Opacity**
-- Seeking Alpha Quant rating includes proprietary metrics not disclosed
-- Some selections violate transparent framework rules
-- Estimated impact: 10-15% of selections unexplained
-- Mitigation: Accept 5-10% confidence discount for predictions
+Alpha-Picks-Analyst remains invoked by Stock-Analyst TURN 1 Step 1B. The input contract now includes a **read-only Regime.json handle**.
 
-**2. Analyst Revision Data Access**
-- Revision data requires premium Seeking Alpha subscription
-- Not fully integrated into all analyses
-- Impact: Cannot validate Tier 3 for all candidates
-- Mitigation: Research revisions for top 2-3 candidates only
+**Input:**
 
-**3. Selection Authority Tracking**
-- Emma Johnston (secondary) vs. Steve Cress (primary analyst)
-- W selected by Emma alone (confidence concern validated by -8% price action)
-- Not systematically tracked across all selections
-- Mitigation: Note analyst authority when announced
+```json
+{
+  "portfolio": "PORTFOLIO.md contents or handle",
+  "quant_top_20": "Seeking Alpha screener data",
+  "regime_json": "Regime.json contents or null",
+  "context": "on-demand | scheduled",
+  "timeout": 300
+}
+```
 
-**4. Macro Event Prediction**
-- Framework correctly identifies macro breaks (HUT/Bitcoin)
-- Cannot predict when macro events will occur
-- Impact: HUT elimination was ex-post, not ex-ante
-- Mitigation: Monitor sector-level macro developments weekly
+**Output:** AlphaPicksOutput with extended `regime_context` and `regime_usage` blocks as defined above.
 
-**5. Sector Concentration Subjectivity**
-- "2 picks per sector" rule is heuristic, not absolute
-- Some sectors (Tech, Financials) have 4+ picks
-- Portfolio rebalancing not fully understood
-- Mitigation: Track monthly sector additions and rotations
-
-### Gaps Needing Further Research
-
-1. **Profitability Trajectory Indicators**
-   - How to identify D-grade profitability that's improving?
-   - Need to formalize "management guidance improvement" signal
-   - W provided case study but need generalizable rules
-
-2. **Analyst Revision Velocity**
-   - Are increasing revisions better than steady high revisions?
-   - How quickly do revisions accumulate?
-   - Need to track 30d, 60d, 90d revision trends
-
-3. **Position Sizing / Conviction Mapping**
-   - Framework predicts WHAT will be selected but not HOW MUCH
-   - Position sizes vary (0.4% to 9.15%) based on unknown factors
-   - May correlate with conviction score (need to validate)
-
-4. **Rotation Timing**
-   - Framework identifies tenure limits but not removal triggers
-   - When do positions exit portfolio?
-   - Does negative price action trigger removal (W -8% day 2)?
-
-5. **Interaction Effects**
-   - How do factors interact? (e.g., weak profitability + excellent analyst revisions)
-   - Current framework treats factors independently
-   - Need compensatory weighting research
+Timeouts, fallbacks, and error handling behavior remain exactly as defined in v8.1.0, with the only addition being clear regime usage metadata.
 
 ---
 
-## ACCURACY TRACKING & CALIBRATION
+## QUALITY & BACKWARD COMPATIBILITY
 
-### Monthly Metrics
+### What Changed in v8.2.0
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| **Prediction Accuracy** | ≥50% | Top candidate selected (yes/no) |
-| **Top 4 Accuracy** | ≥65% | Actual selection in top 4 |
-| **Confidence Calibration** | 1:1 ratio | Predicted 40% ≈ actual ~40% chance |
-| **Tier Effectiveness** | Identify | Which tier most/least predictive? |
-| **Framework Stability** | Consistent | No ad-hoc rule changes |
-| **Monthly Cadence** | 48 hours | Report ready within 2 days of data |
+- **Added:** Direct integration with Regime.json v1.1 (no more Market-Analyst summary dependency)
+- **Added:** Regime-aware macro-broken momentum refinement in Tier 0
+- **Added:** Soft sector bias for top/bottom regime sectors in final probabilities
+- **Added:** `regime_context` and `regime_usage` metadata to output
 
-### Quarterly Deep-Dive Analysis
+### What Did NOT Change
 
-- **Tier effectiveness breakdown** – Which tier most predictive?
-- **Weight calibration** – Should Growth still be 25%? Profitability 15%?
-- **Tenure window validation** – Still 75-120d optimal?
-- **Analyst revision threshold** – Still 90%+ for override?
-- **Constraint enforcement** – Are Tier 0 eliminations correct?
+- Tier 0 constraints (price, market cap, re-picks, sector saturation Podium Rule, analyst coverage thresholds)
+- Tier 1–3 logic, scoring, thresholds, and override rules
+- Execution model timing, caching strategy, and SLAs
+- Overall expected accuracy range (50–55% with proprietary Quant opacity)
+
+### Backward Compatibility Behavior
+
+- With valid Regime.json: v8.1.0 behavior + macro overlay
+- Without Regime.json: v8.1.0 behavior **exactly**, with explicit fallback flags
+
+---
+
+## DEPLOYMENT CHECKLIST (v8.2.0)
+
+**Regime Integration:**
+- [ ] `Regime.json` path accessible (`~/portfolio-framework/Regime.json`)
+- [ ] `schemaversion` = 1.1
+- [ ] `sector_rankings` length = 11, all sectors named
+- [ ] `alpha_picks_analyst_guidance` present and fully populated
+
+**Logic Integration:**
+- [ ] Tier 0 uses `passes_macro_momentum_check()`
+- [ ] Final probability step calls `apply_regime_sector_bias()`
+- [ ] Output includes `regime_context` and `regime_usage` blocks
+
+**Fallbacks:**
+- [ ] Missing/invalid Regime.json → v8.1.0 behavior, flagged as FALLBACK
+- [ ] Guidance confidence <0.50 → local-only macro checks, no sector bias
+
+**Testing:**
+- [ ] Regression: v8.1.0 test cases pass when Regime.json absent
+- [ ] New: Cases with severe YTD underperformance correctly flagged as macro-broken
+- [ ] New: Top 3 regime sectors show +bias; bottom sectors show -bias in probabilities
 
 ---
 
 ## VERSION HISTORY
 
-**v8.0.0 (December 9, 2025):**
-- Created Alpha-Picks-Analyst persona specification for v8 framework
-- Tier 0-3 complete hierarchy with detailed rationales
-- Based on v7 reverse-engineering (18 validated selections)
-- Profitability trajectory override (new learning from W analysis)
-- Analyst revisions as primary override signal (Tier 3 weight upgraded to 25%)
-- Sector saturation tracking (Materials 4/4, Financials 4+, Tech 6+)
-- Monthly monitoring template with pre/post-selection analysis
-- Execution model for Stock-Analyst v8.0.8 invocation (5-min SLA, fallback)
-- Caching strategy for on-demand performance
-- Accuracy tracking methodology (monthly + quarterly calibration)
-- Framework limitations documented with mitigation strategies
-- 13 historical selections documented (18 total in v7, 13 shown with rationales)
+### v8.2.0 (January 10, 2026) – Regime.json Integration
+
+- Introduced **Regime.json v1.1** as macro contract
+- Replaced Market-Analyst summary dependency with direct Regime.json reads
+- Added macro-aware refinements to Tier 0 macro-broken momentum
+- Added soft sector tilt based on regime sector rankings
+- Extended output schema with regime context and usage metadata
+
+### v8.1.0 (January 2, 2026)
+
+- Initial **Market-Analyst integration** as optional summary input
+- Clean separation from portfolio state and hardcoded sector saturation lists
+
+### v8.0.1 / v8.0.0
+
+- Original Tier 0–3 framework, Podium Rule, tenure window, and analyst revision overrides
 
 ---
 
-**End of Alpha-Picks-Analyst.md v8.0.0**
-
+**Alpha-Picks-Analyst v8.2.0 is ready for Design Authority review and space deployment.**

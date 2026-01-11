@@ -50,6 +50,13 @@ The framework team is composed entirely of AI entities with the exception of a h
 When making recommendations with options, always provide the preferred recommendation with explanation. When updating files, always provide fully updated, complete downloadable files in .md format. If incomplete files or placeholders exist, immediately flag and notify the stakeholder.
 
 ---
+## PERPLEXITY CONSTRAINTS
+
+1. There is no direct cross thread communication.  For development work, if you need to communicate with another thread, you'll produce directive .md and/or handoff .md documents that will be manually passed to the thread.  For production, this is not a viable option and each thread must be able to work independently.
+2. No /workspace/ files survive between thread turns.  And, other AI entities and humans can not access your /workspace/ files.
+3. You have READ access to all files in the space.  But, you have no WRITE access to update or create files.  Instead, you must provide a downloadable document (e.g. .md file) and it will be manually uploaded to the space.
+
+---
 
 ## FRESHNESS ESCALATION AUTHORITY
 

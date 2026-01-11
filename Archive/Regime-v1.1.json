@@ -1,0 +1,1008 @@
+{
+  "schemaversion": "1.1",
+  "bufferconfig": {
+    "maxinstances": 52,
+    "currentcount": 2,
+    "pruningenabled": false,
+    "lastprunedat": null,
+    "notes": "Rolling 52-week buffer. Array structure with prepend semantics. Week 2 instance prepended to regimes[0]. Week 1 instance now at regimes[1]."
+  },
+  "regimes": [
+    {
+      "instanceid": 2,
+      "instancesequence": 2,
+      "iscurrent": true,
+      "generatedat": "2026-01-10T17:00:00Z",
+      "generatedatlocal": "2026-01-10 10:00 AM MST",
+      "updatetype": "weekly",
+      "reportcontext": "Week 2 of 2026. Market breadth expansion accelerates (66% above 200d MA), Russell 2000 surges 5.1% weekly. Great Rotation from Mag7 concentration toward Healthcare, Financials, small-caps gaining momentum. Core AI infrastructure resilient (MSFT 0.2%, AMZN 0.4%, GOOG 0.9%); speculative AI repricing (AAPL -4.2%, TSLA timeline delays, NVDA -2.1% valuation reset). Manufacturing contraction enters 10th consecutive month; labor market hiring collapse (50K jobs December). Credit spreads ultra-tight (79 bps IG, 279 bps HY); systemic stress remains low. CPI binary catalyst January 14.",
+      "metadata": {
+        "analyst": "Market-Analyst v8.2.3",
+        "datafreshness": {
+          "lastmajordatarelease": {
+            "timestamp": "2026-01-10T16:00:00Z",
+            "event": "Weekly Market Structure Report + Risk Regime Report + AI/Mag7 Intelligence"
+          },
+          "timesincelastreleasehours": 1
+        },
+        "intraweekalerts": [
+          {
+            "timestamp": "2026-01-10T09:30:00Z",
+            "eventtype": "MarketBreadth",
+            "metric": "SP500 Above 200d MA",
+            "value": 66.06,
+            "prior": 60.44,
+            "variance": 5.62,
+            "impact": "BULLISH",
+            "impactdescription": "Highest breadth participation in 3 years. 66% of SP500 above 200d moving average signals healthy rotation out of Mag7 concentration. Russell 2000 up 5.1% this week, equal-weight index hitting fresh all-time highs confirms genuine broad-based participation."
+          },
+          {
+            "timestamp": "2026-01-10T09:30:00Z",
+            "eventtype": "TechRotation",
+            "metric": "Mag7 Performance Divergence",
+            "value": -0.29,
+            "prior": 1.15,
+            "variance": -1.44,
+            "impact": "NEUTRAL_CONSTRUCTIVE",
+            "impactdescription": "Magnificent Seven average down -0.29% week-over-week while equal-weight S&P 500 up 3.2%. Core AI infrastructure (MSFT, AMZN, GOOG) flat-to-up; speculative AI (AAPL -4.2%, TSLA timeline slippage, NVDA valuation reset) repricing lower. Market discrimination between substance and hype is healthy indicator of regime maturation."
+          },
+          {
+            "timestamp": "2026-01-10T09:30:00Z",
+            "eventtype": "SmallCapMomentum",
+            "metric": "Russell 2000 Weekly Gain",
+            "value": 5.1,
+            "ytd": 6.0,
+            "rsi": 66,
+            "impact": "BULLISH",
+            "impactdescription": "Russell 2000 surged 5.1% this week, up 6% year-to-date despite manufacturing weakness and labor market deterioration. RSI at 66 (approaching overbought 70 but not yet). Signals small-cap rotation is real and driven by fundamentals (cyclical valuations, margin expansion) not technical squeeze."
+          }
+        ]
+      },
+      "regime": {
+        "classification": "TRANSITION",
+        "confidence": 0.74,
+        "recessionprobability6m": 0.21,
+        "recessionprobabilitydescription": "Moderate recession risk at 21% (down from 22% prior week). Manufacturing weakness (10th consecutive contraction) and labor collapse (50K jobs) offset by breadth expansion, credit stability, and locked capex cycle through 2026. Soft-landing scenario remains 50% probability. Deterioration path 15% (DEFENSIVE). Bearish/Crisis path 10% (requires CPI shock or payroll collapse sustained)."
+      },
+      "fourpillars": {
+        "growth": {
+          "indicator": "ISM Manufacturing PMI",
+          "currentvalue": 47.9,
+          "priorvalue": 48.2,
+          "priorperiod": "2025-12-01",
+          "forecast": 49.2,
+          "unit": "indexpoints",
+          "thresholdbullish": 52.0,
+          "thresholdcaution": 48.0,
+          "thresholdbearish": 48.0,
+          "status": "TRIGGEREDBEARISH",
+          "trend": "DETERIORATING",
+          "severity": "MODERATE",
+          "monthsintrend": 10,
+          "monthsconsecutive": 10,
+          "contributiontorecessionprob": 0.04,
+          "description": "Manufacturing sector contracted for 10th consecutive month August 2025 through January 2026. ISM PMI 47.9 December 2025 signals continued economic weakness in industrial production. Production subindex 46.1, New Orders 45.8 (critical weakness), Inventories 45.2. However, services sector remains resilient. Manufacturing weakness is structural but not yet systemic given breadth expansion in equity markets. Tariff uncertainty dominating business sentiment. New export orders broken 10th consecutive month contraction at 46.8. For every positive comment about orders, 1.3 negative sentiment ratio indicates demand caution accelerating. Only Computer Electronic Products reported increased new orders among six largest industries.",
+          "keyindicators": [
+            {
+              "name": "Production Index",
+              "value": 46.1,
+              "direction": "declining",
+              "implication": "Factory output softening, capacity utilization under pressure"
+            },
+            {
+              "name": "New Orders Index",
+              "value": 45.8,
+              "direction": "declining",
+              "implication": "Demand weakness accelerating, tariff uncertainty dominating near-term bookings"
+            },
+            {
+              "name": "Inventory Index",
+              "value": 45.2,
+              "direction": "declining",
+              "implication": "Rapid destocking, supply-side pressure or demand panic signaling"
+            },
+            {
+              "name": "New Export Orders",
+              "value": 46.8,
+              "direction": "declining",
+              "implication": "10th consecutive month contraction, global weakness carrying into 2026, tariff concerns damaging order flow"
+            },
+            {
+              "name": "Sentiment Ratio Negative",
+              "value": 1.3,
+              "direction": "deteriorating",
+              "implication": "For every positive comment about orders, 1.3 negative comments about uncertainty, tariff costs"
+            }
+          ],
+          "drivers": [
+            "Global manufacturing weakness carrying into 2026 consistent global PMI softness",
+            "US export headwinds from trade tensions, tariff expectations creating forward caution",
+            "Capital goods cycle turning, capex decisions postponed pending policy clarity on tariffs",
+            "Seasonal early-January weakness typical, but magnitude of decline exceeding seasonal norms"
+          ],
+          "risks": [
+            "Manufacturing contraction accelerates: ISM sustained at 47 or below in Q1 2026 signals recession approaching",
+            "ISM breaks below 46 with services follow: Composite PMI breaks below 50 indicates systemic contraction underway",
+            "Export collapse deepens: New orders continue 10th+ month contraction, global demand synchronized weakness"
+          ],
+          "supports": [
+            "Services sector resilience: ISM Services continues above 50 (no data available but historical track record strong during manufacturing troughs)",
+            "Labor market resilience offsets manufacturing drag: Unemployment 4.4%, jobless claims 208K subdued, consumer still hiring (though slowly)",
+            "Credit markets loose, no deleveraging signals: IG spreads 79 bps, HY spreads 279 bps, zero funding stress"
+          ]
+        },
+        "labor": {
+          "indicator": "Unemployment Rate & Job Creation",
+          "currentunemployment": 4.4,
+          "priorunemployment": 4.6,
+          "unit": "percent",
+          "thresholdbullish": 4.5,
+          "thresholdcaution": 4.5,
+          "thresholdbearish": 5.0,
+          "status": "TRIGGEREDBULLISH",
+          "trend": "SOFTENINGNOTBREAKING",
+          "severity": "LOW",
+          "contributiontorecessionprob": 0.03,
+          "description": "Labor market showing signs of softening but not deteriorating. Unemployment rate 4.4% improved from 4.6%, signaling tightness in labor supply and low layoff risk. However, December 2025 non-farm payrolls collapsed to only 50,000 jobs weakest in years, versus 73,000 forecast, representing -23,000 miss. This is the worst monthly hiring since 2020 recession outside of pandemic collapse. 2025 annual average job creation 49,000 per month worst year since 2003 outside of recession. November revised down to 56,000, October revised loss to -173,000. This is a hiring recession level dynamic. Jobless claims 208,000 rising slightly but no surge. Continuing claims 1.914M up. Wage growth 3.8% annualized, accelerating and above expectations, suggesting inflation persistence despite weak job growth. This creates a disinflationary paradox: fewer workers being hired but those working earning more. Low hire, low fire environment leaves little margin for policy error if claims begin trending higher.",
+          "keyindicators": [
+            {
+              "name": "Unemployment Rate",
+              "value": 4.4,
+              "direction": "improving",
+              "implication": "Labor market still tight, no major layoffs yet, but deterioration possible if hiring continues to collapse"
+            },
+            {
+              "name": "Non-Farm Payrolls",
+              "value": 50000,
+              "unit": "jobspermonth",
+              "direction": "weakening",
+              "implication": "Job creation at 2020 recession levels, worst monthly reading in years, hiring recession dynamics"
+            },
+            {
+              "name": "Jobless Claims",
+              "value": 208000,
+              "direction": "stable_rising_slightly",
+              "implication": "No surge yet, but rising. Yellow flag if trend continues higher. 225K+ would signal deterioration acceleration"
+            },
+            {
+              "name": "Wage Growth YoY",
+              "value": 3.8,
+              "unit": "percent_annualized",
+              "direction": "sticky_accelerating",
+              "implication": "Labor cost inflation above Fed comfort zone, constrains rate-cut frequency, supports demand but inflation concerns"
+            },
+            {
+              "name": "2025 Average Monthly Jobs",
+              "value": 49000,
+              "unit": "jobs",
+              "direction": "collapsing",
+              "implication": "Worst year for hiring since 2003 outside recession, represents hiring recession declaration"
+            }
+          ],
+          "drivers": [
+            "Seasonal early-January weakness in hiring typical, but magnitude exceeding norms by 35%+",
+            "Manufacturing contraction reducing industrial job creation directly, corporate realignment post-2024 gains",
+            "Tech sector rationalization stabilizing but at lower headcount baseline post-2024 hiring boom",
+            "Services and hospitality still hiring but at slower pace, retail weakening (-25K December)"
+          ],
+          "risks": [
+            "Non-farm payrolls decline further sustained 50K or below for 2 months unemployment rate rises above 5.0%",
+            "Household-establishment survey divergence resolves to downside: household survey also weakens, confirming breadth of labor softening",
+            "Jobless claims trend higher 225K+ sustained would signal deterioration acceleration and recession probability jump to 40%+"
+          ],
+          "supports": [
+            "Unemployment already improving 4.4% vs. prior 4.6%, no widespread layoff announcements, tech companies stabilizing headcount",
+            "Wage growth supports consumption household balance sheets remain strong, credit card delinquencies low",
+            "Low hire/low fire environment suggests corporates retaining workers despite weak demand"
+          ]
+        },
+        "inflation": {
+          "indicator": "Core CPI / PCE Core",
+          "corecpiyoy": 3.2,
+          "pcecoreyoy": 2.8,
+          "unit": "percent_yoy",
+          "thresholdbullish": 2.5,
+          "thresholdcaution": 2.8,
+          "thresholdbearish": 3.1,
+          "status": "NEUTRAL_AWAITINGDATA",
+          "trend": "DISINFLATIONARY",
+          "severity": "LOW",
+          "contributiontorecessionprob": -0.02,
+          "description": "Inflation trajectory disinflationary heading into 2026. Core CPI and PCE expected to remain well-controlled as shelter costs cool and energy stabilizes. However, wage growth at 3.8% may provide floor on inflation, and sticky core services remain slight concern. Key binary catalyst: January 14, 2026 CPI print will be determinative for Fed messaging and equity market direction. Disinflationary print (Core CPI 0.2% MoM or lower) supports GROWTH path and signals soft-landing confirmation. Sticky print (Core CPI 0.3-0.4% MoM) sustains TRANSITION or shifts toward DEFENSIVE. Market pricing 35% bullish (disinflationary), 35% neutral, 30% bearish (sticky) probability.",
+          "keyindicators": [
+            {
+              "name": "Core CPI ex-food energy",
+              "value": 0.25,
+              "unit": "MoM_percent",
+              "direction": "disinflationary",
+              "implication": "Core inflation cool, no sticky surprises yet"
+            },
+            {
+              "name": "Shelter Costs",
+              "direction": "down",
+              "implication": "Housing component normalizing after years of elevation, cooling trajectory intact"
+            },
+            {
+              "name": "Energy Oil Prices",
+              "value": 82,
+              "unit": "per_bbl",
+              "direction": "stable",
+              "implication": "No inflationary shock from commodities, geopolitical risks contained"
+            },
+            {
+              "name": "Wage Growth YoY",
+              "value": 3.8,
+              "unit": "percent",
+              "direction": "sticky",
+              "implication": "Labor cost inflation remains above comfort zone, provides floor on services inflation"
+            },
+            {
+              "name": "January 14 CPI Binary Catalyst",
+              "threshold_bullish": "0.2 MoM or lower, 2.7 YoY",
+              "threshold_bearish": "0.4 MoM or higher, 3.1 YoY",
+              "threshold_neutral": "0.3 MoM, 2.8-3.0 YoY"
+            }
+          ],
+          "drivers": [
+            "Fed rate cuts 75 bps total in 2025 creating disinflationary backdrop",
+            "Energy stability no geopolitical oil shocks, pricing in soft landing",
+            "Shelter component cooling as rent growth moderates after multi-year surge",
+            "Wage growth sticky but not accelerating, suggests inflation stabilizing near current levels"
+          ],
+          "risks": [
+            "Wage acceleration surprises higher sticky core services inflation reaccelerating",
+            "Oil price shock or tariff-driven commodity inflation surprising higher",
+            "Shelter costs plateau before reaching 2% trend, sticky floor higher than expected"
+          ],
+          "supports": [
+            "Disinflationary trend established in Q4 2025, no reacceleration signals evident",
+            "Core CPI trajectory lower, January 14 CPI print expected disinflationary per Wall Street consensus",
+            "Fed cutting rates disinflationary bias, Powell signaling patience on rate path"
+          ]
+        },
+        "financialconditions": {
+          "indicator": "Credit Spreads / VIX / Breadth / Yield Curve",
+          "igspreadsbps": 79,
+          "hyspreadsbps": 279,
+          "vixlevel": 15.38,
+          "unit": "basispoints_indexlevel",
+          "thresholdbullish": 100,
+          "thresholdcaution": 150,
+          "thresholdbearish": 200,
+          "status": "TRIGGEREDBULLISH",
+          "trend": "TIGHTROOMTOCOMPRESS",
+          "severity": "LOW",
+          "contributiontorecessionprob": -0.02,
+          "description": "Credit markets exceptionally tight, reflecting minimal systemic stress and strong credit demand. IG spreads at 79 bps tightest in 20 years. HY spreads at 279 bps also historically compressed, at 2nd percentile versus 20-year average of 521 bps. This means 1) No imminent credit stress or deleveraging risk, 2) Limited margin of safety if growth concerns mount sharply, 3) Spreads have little room to compress further, significant room to widen if macro deteriorates. VIX at 15.38 contained equity volatility no panic pricing. Yield curve steepening constructively (10Y-2Y slope 0.45%), supporting financial stability and easing conditions. Credit markets are giving the all-clear signal on systemic risk; current equity weakness is tactical profit-taking, rotation rather than structural credit crunch. Carry trade remains intact; leverage is not being forcibly unwound. NFCI National Financial Conditions Index at -0.55, easier than year ago, indicating safe-haven bid is about macro uncertainty rather than liquidity stress.",
+          "keyindicators": [
+            {
+              "name": "IG Credit Spreads",
+              "value": 79,
+              "unit": "bps",
+              "direction": "tight",
+              "percentile": "2nd percentile vs 20-year lookback",
+              "implication": "Corporate credit demand strong, no stress signals, tightest in 20 years"
+            },
+            {
+              "name": "HY Credit Spreads",
+              "value": 279,
+              "unit": "bps",
+              "direction": "tight",
+              "percentile": "2nd percentile vs 521 bps 20-year average",
+              "implication": "High-yield credit healthy, risk appetite intact, little room to compress"
+            },
+            {
+              "name": "VIX Level",
+              "value": 15.38,
+              "direction": "low",
+              "longrunaverage": 20,
+              "implication": "Equity volatility contained, no panic pricing, calm surface despite event risk"
+            },
+            {
+              "name": "Yield Curve Slope 10Y-2Y",
+              "value": 0.45,
+              "unit": "percent",
+              "direction": "steepening",
+              "implication": "Growth-supportive curve shape, accommodative financial conditions, rate-cut expectations intact"
+            },
+            {
+              "name": "NFCI National Financial Conditions Index",
+              "value": -0.55,
+              "direction": "easy",
+              "implication": "Easier than year ago, safe-haven bid about macro uncertainty not liquidity stress"
+            },
+            {
+              "name": "Bitcoin Carry-Trade Indicator",
+              "value": 90600,
+              "key_support": 88000,
+              "direction": "elevated",
+              "implication": "Carry trade intact, high-beta risk appetite still broadly supported"
+            }
+          ],
+          "drivers": [
+            "Fed rate cuts 75 bps in 2025 reducing discount rates, easing financial conditions",
+            "Credit supply abundant no tightening in lending standards, corporate health strong",
+            "Equity market resilience driving risk appetite, rotation into value not panic de-risking",
+            "No major credit events or defaults, corporate earnings power remains intact"
+          ],
+          "risks": [
+            "Spreads widening sharply if growth data misses: IG spreads moving to 120 bps, HY to 350+ bps triggers reassessment",
+            "Credit event or default in leveraged corporate sector if recession probability spikes above 50%",
+            "Curve flattening if Fed signals pause on rate cuts, duration investors rotate out"
+          ],
+          "supports": [
+            "IG spreads tightest in 20 years indicate healthy credit cycle, no leverage unwind",
+            "HY spreads compressed, high-yield issuance strong, demand for corporate debt robust",
+            "VIX low equity volatility minimal, market pricing low stress environment",
+            "Curve steepening supports financial stability, rate-cut trajectory maintains easing bias"
+          ]
+        }
+      },
+      "sectorrankings": [
+        {
+          "rank": 1,
+          "sector": "Materials",
+          "gicscode": 15,
+          "performanceytd": 12.3,
+          "equalweightperformance": 12.1,
+          "capweightperformance": 12.3,
+          "momentum": "STRONGPOSITIVE",
+          "regimefit": "EXCELLENT",
+          "regimemultiplier": 1.25,
+          "attractivenessscore": 89,
+          "allocationcap": 15.0,
+          "recommendation": "OVERWEIGHT",
+          "rankstability": {
+            "ranklastweek": 1,
+            "weeksintop3": 6,
+            "status": "CONSISTENTLYATTRACTIVE"
+          },
+          "rationale": "Materials lead as rotation away from Mag7 concentration accelerates. Tariff dynamics and capex cycle turning supportive. Precious metals benefiting from safe-haven demand (gold +67% YoY). Leading sector in TRANSITION regime as breadth expansion favors cyclicals. Russell 2000 outperformance +5.1% this week validates rotation thesis.",
+          "keycatalysts": [
+            "Tariff policy clarity expected this quarter, potential tailwind to commodity prices",
+            "Capex recovery in Q1 2026 infrastructure, defense spending unlocking demand",
+            "Gold-silver prices elevated, jewelry and industrial demand supporting base metals",
+            "Mining M&A activity accelerating as consolidation premium emerges"
+          ],
+          "risks": [
+            "Tariff reversal or commodity price collapse if trade tensions ease",
+            "Chinese demand weakness and capex slowdown if global growth disappoints",
+            "Environmental/ESG pressure on mining companies, regulatory costs rising"
+          ]
+        },
+        {
+          "rank": 2,
+          "sector": "Healthcare",
+          "gicscode": 35,
+          "performanceytd": 8.9,
+          "equalweightperformance": 8.7,
+          "capweightperformance": 8.9,
+          "momentum": "POSITIVE",
+          "regimefit": "EXCELLENT",
+          "regimemultiplier": 1.20,
+          "attractivenessscore": 85,
+          "allocationcap": 14.0,
+          "recommendation": "OVERWEIGHT",
+          "rankstability": {
+            "ranklastweek": 2,
+            "weeksintop3": 5,
+            "status": "GAININGSTRENGTHINWEEKLY"
+          },
+          "rationale": "Healthcare a reliable beneficiary of rate-cut environments lower discount rates boost valuation multiples. Defensive characteristics make it attractive in TRANSITION regime. Earnings cycle durable drug approvals steady pipeline. Aging population structural tailwind. Clinical breakthroughs in GLP-1 oral medications and biotech innovation driving fresh upside potential. Sector breadth strong with 8 of 11 sectors up, indicating genuine participation rather than narrow leadership.",
+          "keycatalysts": [
+            "Rate-cut cycle continues, valuation expansion potential sustained",
+            "Q4 earnings season strength in biotech and medical devices (Jan 13-15 banking sector kickoff)",
+            "M&A activity consolidation premium emerging in undervalued subsectors",
+            "Aging population and GLP-1 oral adoption driving volume growth"
+          ],
+          "risks": [
+            "Drug pricing pressure from regulation, margin compression risk",
+            "R&D setbacks in key pipelines, patent cliff and generic competition",
+            "Excess PE valuation if rate-cut cycle pauses or reverses"
+          ]
+        },
+        {
+          "rank": 3,
+          "sector": "Utilities",
+          "gicscode": 55,
+          "performanceytd": -2.1,
+          "equalweightperformance": -2.3,
+          "capweightperformance": -2.1,
+          "momentum": "EMERGINGPOSITIVE",
+          "regimefit": "EXCELLENT",
+          "regimemultiplier": 1.18,
+          "attractivenessscore": 82,
+          "allocationcap": 12.0,
+          "recommendation": "OVERWEIGHT",
+          "rankstability": {
+            "ranklastweek": 3,
+            "weeksintop3": 4,
+            "status": "EMERGINGPARTICIPATIONNEWTREND"
+          },
+          "rationale": "Utilities benefiting from AI data center build-out and nuclear power demand rising. Rate-cut cycle supports bond-like characteristics and dividend yield becomes increasingly attractive. Defensive positioning in TRANSITION regime with margin expansion from operational leverage. Nuclear expansion announcements and AI power demand create growth optionality often missed by traditional utility investors.",
+          "keycatalysts": [
+            "Nuclear capacity expansion announcements AI data center power demands",
+            "Rate-cut cycle yield pickup attractive relative to alternatives",
+            "Dividend growth and share buyback programs supporting valuations",
+            "Renewable energy mandates creating growth optionality across substations and grid modernization"
+          ],
+          "risks": [
+            "Regulatory pressure on rate base capex and capex constraints limiting returns",
+            "Bond yields stabilize or rise, creating valuation pressure on rate-sensitive utilities",
+            "Nuclear cost overruns and construction delays if projects slip timelines"
+          ]
+        },
+        {
+          "rank": 4,
+          "sector": "Industrials",
+          "gicscode": 20,
+          "performanceytd": 5.2,
+          "equalweightperformance": 4.8,
+          "capweightperformance": 5.2,
+          "momentum": "NEUTRALPOSITIVE",
+          "regimefit": "GOOD",
+          "regimemultiplier": 1.10,
+          "attractivenessscore": 78,
+          "allocationcap": 11.0,
+          "recommendation": "HOLDPLUS",
+          "rankstability": {
+            "ranklastweek": 4,
+            "weeksintop3": 3,
+            "status": "STABLEINTRANSITION"
+          },
+          "rationale": "Industrials benefiting from defense spending and infrastructure tailwinds. Earnings cycle supports moderate allocation. Less cyclical than Materials but more exposed to growth cycles than Utilities. Good fit for TRANSITION regime. Defense budget increases have bipartisan support providing durable tailwind. AI data center infrastructure capex benefits industrial equipment makers and installation services.",
+          "keycatalysts": [
+            "Defense budget increases bipartisan support, multi-year programs locked in",
+            "Infrastructure investment programs, non-residential construction acceleration",
+            "Manufacturing stabilization in H1 2026 if ISM breaks above 48 and sustains",
+            "AI capex acceleration benefits industrial equipment and logistics"
+          ],
+          "risks": [
+            "Manufacturing contraction worsens, ISM breaks below 46 sustained signals recession",
+            "Capex cycle delays if recession concerns mount, corporate caution increases",
+            "Supply chain disruptions from geopolitical events, tariff volatility"
+          ]
+        },
+        {
+          "rank": 5,
+          "sector": "Financials",
+          "gicscode": 40,
+          "performanceytd": 6.1,
+          "equalweightperformance": 5.9,
+          "capweightperformance": 6.1,
+          "momentum": "NEUTRAL",
+          "regimefit": "GOOD",
+          "regimemultiplier": 1.08,
+          "attractivenessscore": 76,
+          "allocationcap": 10.5,
+          "recommendation": "HOLDPLUS",
+          "rankstability": {
+            "ranklastweek": 5,
+            "weeksintop3": 2,
+            "status": "PARTICIPATINGINROTATION"
+          },
+          "rationale": "Financials benefit from steeper yield curve, net interest margins improve. Credit spreads tight (79 bps), low loan-loss provisions. Banking sector stabilized post-SVB, capital ratios elevated. Moderate allocation appropriate for TRANSITION regime. Q1 2026 earnings season starting Jan 13 should show strong results from NIM expansion and tight credit.",
+          "keycatalysts": [
+            "Yield curve steepening continues, NIM expansion supports earnings",
+            "Q1 2026 earnings strength, bank capital returns accelerating (buybacks, dividends)",
+            "M&A activity rising, investment banking fees improving",
+            "Credit quality remains intact with low delinquencies supporting ROA"
+          ],
+          "risks": [
+            "Yield curve flattening if Fed reverses rate-cut pace, NIM pressure accelerates",
+            "Credit deterioration if labor market cracks and unemployment spikes above 5.0%",
+            "Regulatory changes to capital requirements imposing new constraints"
+          ]
+        },
+        {
+          "rank": 6,
+          "sector": "Consumer Discretionary",
+          "gicscode": 25,
+          "performanceytd": 3.4,
+          "equalweightperformance": 2.9,
+          "capweightperformance": 3.4,
+          "momentum": "NEUTRAL",
+          "regimefit": "NEUTRAL",
+          "regimemultiplier": 1.00,
+          "attractivenessscore": 68,
+          "allocationcap": 9.0,
+          "recommendation": "HOLD",
+          "rankstability": {
+            "ranklastweek": 6,
+            "weeksintop3": 1,
+            "status": "LASTINCAPITALFLOWLINE"
+          },
+          "rationale": "Consumer Discretionary neutral in TRANSITION regime. Household spending remains resilient but faces headwinds from wage growth moderation and job creation collapse. Retail earnings mixed, luxury goods (concentrated in Mag7) under pressure. Mid-tier discretionary more attractive than luxury. Valuation stretched relative to fundamentals. Sector participation is last in line of capital flows during rotation, suggesting opportunity emerges after Materials, Healthcare, Utilities exhaust upside.",
+          "keycatalysts": [
+            "Holiday sales beat supporting Q4-Q1 earnings",
+            "Wage growth stabilization validates consumer strength thesis",
+            "Unemployment remains below 5.0%, job security supports spending",
+            "Credit card delinquencies remain low, consumer debt service manageable"
+          ],
+          "risks": [
+            "Consumer spending slowdown if labor market cracks, unemployment rises 5.0%+",
+            "Discount and promotional environment squeezing margins across retail",
+            "Housing market softness reducing wealth effect and consumer confidence",
+            "Credit card delinquencies rising if debt burden becomes unsustainable"
+          ]
+        },
+        {
+          "rank": 7,
+          "sector": "Real Estate (REITs)",
+          "gicscode": 60,
+          "performanceytd": 1.2,
+          "equalweightperformance": 0.8,
+          "capweightperformance": 1.2,
+          "momentum": "WEAK",
+          "regimefit": "POOR",
+          "regimemultiplier": 0.85,
+          "attractivenessscore": 55,
+          "allocationcap": 4.0,
+          "recommendation": "UNDERWEIGHT",
+          "rankstability": {
+            "ranklastweek": 7,
+            "weeksintop3": 0,
+            "status": "LAGGINGNODEFENSIVEBID"
+          },
+          "rationale": "Real Estate lagging in TRANSITION regime. Office vacancy high, remote work structural headwind. Industrial REITs benefiting from e-commerce but retail REITs under pressure. Rate-cut cycle eventually helps (lower cap rates), but near-term pain from debt servicing and revaluations. No protective bid despite economic slowdown signals suggests market not yet in true defensive mode.",
+          "keycatalysts": [
+            "Office-to-residential conversions creating supply reduction potential",
+            "Rate cuts boosting cap rates and providing valuation relief longer-term",
+            "Logistics REITs benefiting from e-commerce acceleration",
+            "Dividend yields attractive at current depressed valuation levels"
+          ],
+          "risks": [
+            "Office sector deterioration accelerates structural vacancy floor higher than expected",
+            "Debt refinancing pressure if rates stay elevated longer than market expects",
+            "Recession reducing occupancy rates across all property types",
+            "Cap rate expansion continuing if growth concerns persist, pushing valuations lower"
+          ]
+        },
+        {
+          "rank": 8,
+          "sector": "Consumer Staples",
+          "gicscode": 30,
+          "performanceytd": -0.8,
+          "equalweightperformance": -0.9,
+          "capweightperformance": -0.8,
+          "momentum": "WEAK",
+          "regimefit": "FAIR",
+          "regimemultiplier": 0.92,
+          "attractivenessscore": 62,
+          "allocationcap": 8.0,
+          "recommendation": "NEUTRAL",
+          "rankstability": {
+            "ranklastweek": 8,
+            "weeksintop3": 0,
+            "status": "DEFENSIVEBUTNOLOWBID"
+          },
+          "rationale": "Consumer Staples defensive but underweighting due to high valuations relative to growth. Trading premium to market due to defensive characteristics in TRANSITION regime. Earnings growth modest, margin pressure from input costs possible. Better as defensive hedge than core position. Inflation in staples constrained by wage pressures but competition from private label remains intense.",
+          "keycatalysts": [
+            "Inflation moderation supporting gross margin expansion",
+            "Commodity price stabilization in food and energy",
+            "Dividend growth and buyback programs stabilizing valuations",
+            "Online sales growth and channel diversification offsetting volume pressure"
+          ],
+          "risks": [
+            "Wage inflation hitting input costs faster than pricing power allows",
+            "Private-label competition intensifying, market share loss acceleration",
+            "Recession reducing trading-up demand, volume pressure from consumer",
+            "Tariff impact on imported goods raising cost structure"
+          ]
+        },
+        {
+          "rank": 9,
+          "sector": "Energy",
+          "gicscode": 10,
+          "performanceytd": 4.7,
+          "equalweightperformance": 4.2,
+          "capweightperformance": 4.7,
+          "momentum": "NEUTRALWEAK",
+          "regimefit": "FAIR",
+          "regimemultiplier": 0.95,
+          "attractivenessscore": 65,
+          "allocationcap": 5.5,
+          "recommendation": "HOLD",
+          "rankstability": {
+            "ranklastweek": 9,
+            "weeksintop3": 0,
+            "status": "STABLENOTLEADING"
+          },
+          "rationale": "Energy neutral in TRANSITION regime. Oil prices stable around $82/bbl, geopolitical risks contained. Refining margins healthy but facing peak earnings risk as crude input costs rise. LNG export growth supporting upstream valuations. Dividend yields attractive, buyback programs robust. Valuation reasonable but not compelling given macro uncertainty.",
+          "keycatalysts": [
+            "Oil prices stable or higher on geopolitical support, demand resilience",
+            "OPEC production cuts extended, floor on pricing maintained",
+            "LNG export growth supporting energy security premiums",
+            "Dividend growth and share buyback programs sustaining returns"
+          ],
+          "risks": [
+            "Oil price collapse if geopolitical tensions ease or recession fears spike",
+            "Renewable energy acceleration creating stranded asset risk",
+            "Regulatory pressure on climate and emissions becoming more aggressive",
+            "Currency weakness impacting ExxonMobil, Chevron foreign earnings"
+          ]
+        },
+        {
+          "rank": 10,
+          "sector": "Communications",
+          "gicscode": 50,
+          "performanceytd": 2.1,
+          "equalweightperformance": 1.8,
+          "capweightperformance": 2.1,
+          "momentum": "WEAK",
+          "regimefit": "POOR",
+          "regimemultiplier": 0.82,
+          "attractivenessscore": 58,
+          "allocationcap": 6.0,
+          "recommendation": "UNDERWEIGHT",
+          "rankstability": {
+            "ranklastweek": 10,
+            "weeksintop3": 0,
+            "status": "CONCENTRATIONRISKPERSISTS"
+          },
+          "rationale": "Communications Meta, Google, Magnificent Seven concentration under profit-taking pressure. Despite strong advertising fundamentals, valuations stretched, concentration risk elevated. YouTube, Instagram growth solid but facing competitive pressure from TikTok, short-form video. Regulatory risk persistent across antitrust and content moderation. Sector divergence: Meta showing +1.1% this week while GOOG +0.9%, but both facing structural headwinds. AAPL -4.2% this week highlights Mag7 repricing underway.",
+          "keycatalysts": [
+            "AI monetization in search and advertising improvements",
+            "Q4 earnings beat on holiday ad spending supporting momentum",
+            "Cloud revenue growth acceleration in enterprise AI services",
+            "Capex discipline reducing margin expansion near-term but supporting optionality"
+          ],
+          "risks": [
+            "Advertising recession if consumer spending slows materially",
+            "Regulatory antitrust action against Google, Meta structurally damaging",
+            "AI training cost explosion compressing margins as capex accelerates",
+            "TikTok ban or restrictions creating competition void but also regulatory risk"
+          ]
+        },
+        {
+          "rank": 11,
+          "sector": "Technology",
+          "gicscode": 45,
+          "performanceytd": 18.2,
+          "equalweightperformance": 6.9,
+          "capweightperformance": 18.2,
+          "momentum": "DETERIORATING",
+          "regimefit": "POOR",
+          "regimemultiplier": 0.65,
+          "attractivenessscore": 48,
+          "allocationcap": 12.0,
+          "recommendation": "UNDERWEIGHTSIGNIFICANTLY",
+          "rankstability": {
+            "ranklastweek": 11,
+            "weeksintop3": 0,
+            "status": "CONCENTRATIONPEAK_REPRICING"
+          },
+          "rationale": "Technology severely concentrated in Magnificent Seven NVDA, MSFT, GOOGL, AMZN, TSLA, META, AVGO, which are experiencing profit-taking after dominant 2024. Concentration at 34.4% of SP500 market cap (down from peak 35%+, approaching caution threshold of 35%). Cap-weighted sector performance +18.2% YTD masks breadth weakness: equal-weight performance only +6.9%. Only 7 stocks driving majority of sector returns. TRANSITION regime does not favor concentrated tech growth. AI narrative intact for infrastructure plays (MSFT, AMZN, GOOG) but repricing for speculative names (AAPL -4.2%, TSLA timeline slippage, NVDA valuation reset). Market discrimination between substance (core AI infra) and hype (speculative AI) is working.",
+          "keycatalysts": [
+            "AI capex cycle peak concern, potential saturation in 2026 if guidance disappoints",
+            "Q4 2025 earnings and forward guidance critical: MSFT Azure 40% YoY beats, AMZN AWS 20% reaccel, GOOG capex 85B commitment",
+            "Tablet PC refresh cycles demand shift potential as aging devices replace",
+            "Cloud adoption acceleration and recurring revenue model strengthening valuations for quality"
+          ],
+          "risks": [
+            "Valuation reset and compression if growth disappoints Q4 earnings",
+            "Magnificent Seven concentration reversal driving breadth rotation continuation",
+            "Regulatory antitrust action against AAPL, GOOG, META, AMZN structurally damaging",
+            "AI capex intensity rising, margin pressure ahead as costs accelerate"
+          ],
+          "safehavennote": "Magnificent Seven Mag7 core NVDA, MSFT, GOOGL, AMZN, TSLA should be held for quality and optionality but reduced on strength given valuation stretched positioning. Mag7 concentration at 34.4% (per Jan 10 data) warrants systematic trimming as rotation into Materials, Healthcare, Utilities continues. Core AI infrastructure (MSFT +0.2%, AMZN +0.4%, GOOG +0.9%) showing resilience while speculative AI (AAPL -4.2%, TSLA timeline delays, NVDA -2.1% valuation reset) repricing lower. This is healthy market differentiation, NOT panic unwinding. Breadth expansion (66% SP500 above 200d MA, Russell 2000 +5.1% this week) validates rotation thesis. Strategic positioning: maintain 50% Mag7 weighted toward MSFT/AMZN/GOOG core AI infrastructure, 50% non-Mag7 quality to hedge concentration risk."
+        }
+      ],
+      "analystimplications": {
+        "stockanalystguidance": {
+          "macroregimeeffect": "TRANSITION",
+          "penaltyforcyclicals": -0.08,
+          "penaltyforgrowthtech": -0.12,
+          "boostfordefensives": 0.05,
+          "boostforvalue": 0.08,
+          "weightingcontext": "TRANSITIONROTATION",
+          "convictionadjustment": "Reduce cyclical conviction by 8pp; reduce growth-tech conviction by 12pp; boost defensive conviction by 5pp; boost value conviction by 8pp.",
+          "sizehintadjustments": {
+            "growthstocks": "Cap at 4% max position size vs normal 6%; conviction threshold 75pp vs normal 70pp",
+            "cyclicalstocks": "Normal 6% max; conviction threshold 75pp vs 70pp; require strong Materials/Industrials thesis",
+            "defensivestocks": "Allow 6% max (vs normal 5%); conviction threshold 65pp vs 70pp; Healthcare/Utilities favorable",
+            "valuestocks": "Encourage 6% max allocations; conviction threshold 70pp (normal); Materials/Financials sweet spot"
+          },
+          "exampleapplication": "Tesla (growth-tech cyclical): Base conviction 78pp. TRANSITION regime penalty -12pp = 66pp conviction (MEDIUM-LOW). Position capped at 4%. Caterpillar (Materials cyclical): Base conviction 72pp. TRANSITION regime boost 8pp = 80pp conviction (MEDIUM-HIGH). Position sized normally 6%."
+        },
+        "portfolioanalystguidance": {
+          "macroregime": "TRANSITION",
+          "sectorrebalancingsignal": "ROTATEINTOMATERIALSHEALTHCAREUTILITIES",
+          "actionpriorities": [
+            {
+              "priority": 1,
+              "action": "OVERWEIGHT Materials sector from 5% to 10% equity allocation",
+              "targetduration": "3-6 months",
+              "rationale": "Materials rank 1 attractiveness (89/100), leading rotation away from Mag7 concentration. Tariff upside, capex cycle turning positive, precious metals benefiting from safe-haven demand. Russell 2000 +5.1% this week validates cyclical opportunity."
+            },
+            {
+              "priority": 2,
+              "action": "OVERWEIGHT Healthcare sector from 10% to 14% equity allocation",
+              "targetduration": "6-12 months",
+              "rationale": "Healthcare rank 2 attractiveness (85/100), defensive rate-cut beneficiary, earnings durable, aging population structural tailwind. GLP-1 oral medications and biotech innovation driving fresh upside. Q4 earnings season strength (Jan 13-15) should accelerate rotation."
+            },
+            {
+              "priority": 3,
+              "action": "OVERWEIGHT Utilities sector from 6% to 10% equity allocation",
+              "targetduration": "3-9 months",
+              "rationale": "Utilities rank 3 attractiveness (82/100), AI data center nuclear power demand rising, rate-cut cycle supports dividend yield, operational leverage margin expansion. Emerging growth optionality often overlooked by traditional allocators."
+            },
+            {
+              "priority": 4,
+              "action": "REDUCE Technology sector from 20% to 12-15% equity allocation",
+              "targetduration": "1-3 months systematic trimming on strength",
+              "rationale": "Technology rank 11 attractiveness (48/100), Mag7 concentration 34.4% at caution threshold. AAPL -4.2% this week, NVDA valuation reset, TSLA timeline slippage signal repricing underway. Market discriminating between core AI infrastructure (resilient) and speculative AI (repricing lower)."
+            },
+            {
+              "priority": 5,
+              "action": "TRIM Magnificent Seven holdings, reduce by 25% on 5%+ strength",
+              "targetduration": "Ongoing systematic trimming",
+              "rationale": "Mag7 concentration 34.4% vs normal 20% represents systemic concentration risk. Strategic trimming on strength generates proceeds for rotation into Materials, Healthcare, Utilities. Breadth expansion validates rotation as healthy, not panic-driven."
+            }
+          ],
+          "cashdeploymentguidance": {
+            "targetequityallocation": 0.60,
+            "targetfixedincomeallocation": 0.25,
+            "targetalternativesallocation": 0.05,
+            "targetcashallocation": 0.10,
+            "deploymenttriggers": [
+              {
+                "trigger": "SP500 declines 5% from current",
+                "action": "Deploy 3% of cash reserves into Materials/Healthcare on weakness"
+              },
+              {
+                "trigger": "Breadth advance-decline ratio exceeds 0.90",
+                "action": "Maintain position, continue systematic Mag7 trimming"
+              },
+              {
+                "trigger": "VIX exceeds 20 (sentiment extreme)",
+                "action": "Deploy 5% cash into quality large-cap on panic"
+              }
+            ]
+          },
+          "hedgingplan": {
+            "vixcallsootm": "Maintain 2% portfolio allocation in 3-month OTM VIX calls for tail-risk protection",
+            "goldsilverallocation": "Maintain 3% portfolio allocation in precious metals for safe-haven hedge",
+            "durationpositioning": "Neutral; yield curve steepening supports duration-neutral stance, not aggressive long",
+            "putspreadoverlay": "Optional establish put spreads on Materials/Utilities high conviction sectors to reduce volatility"
+          }
+        },
+        "alphapicksanalystguidance": {
+          "macroregime": "TRANSITION",
+          "convictionadjustmentrule": "In TRANSITION regime, apply -8pp to all growth-tech positions; apply 8pp to Materials, Healthcare, Utilities positions; apply 0pp to quality cyclicals.",
+          "universefiltering": {
+            "includesectors": ["Materials", "Healthcare", "Utilities", "Industrials", "Financials"],
+            "excludesectors": ["Technology unless defensive subsector", "Communications", "Consumer Discretionary"]
+          },
+          "capconcentration": "No single position >5% to avoid Mag7-style concentration risk",
+          "candidatescreeningrules": [
+            {
+              "rule": "Prefer Materials sector candidates, ISM weakness creates capex cycle opportunity",
+              "convictionboost": 5,
+              "examples": "FCX, NUE, DD diversified materials with capex tailwind"
+            },
+            {
+              "rule": "Prefer Healthcare candidates with earnings visibility",
+              "convictionboost": 5,
+              "examples": "UNH, JNJ, LLY quality healthcare names beating Q4 earnings"
+            },
+            {
+              "rule": "Prefer Utilities with nuclear/renewable tailwind",
+              "convictionboost": 5,
+              "examples": "NEE, SO, AES renewables and nuclear positioning"
+            },
+            {
+              "rule": "Avoid concentrated Mag7 positions",
+              "convictionpenalty": -12,
+              "rationale": "Concentration risk unwarranted in TRANSITION regime"
+            },
+            {
+              "rule": "Avoid growth-tech unless thesis very strong (conviction 80+)",
+              "convictionpenalty": -12,
+              "examples": "ASML, NVDA, META below 80pp conviction UNDERWEIGHT"
+            }
+          ],
+          "convictionfloorbyregime": {
+            "growthstocksintransition": 75,
+            "cyclicalstocksintransition": 70,
+            "defensivestocksintransition": 65,
+            "valuestocksintransition": 70
+          }
+        },
+        "portfolioorchestratorguidance": {
+          "macroregime": "TRANSITION",
+          "deploymentconstraints": {
+            "equityallocationminmax": [0.50, 0.70],
+            "fixedincomeallocationminmax": [0.15, 0.30],
+            "hedgeallocationmin": 0.10,
+            "cashbuffermin": 0.10
+          },
+          "autooverridetriggers": [
+            {
+              "condition": "If recession probability 6m ≥ 50%",
+              "action": "Auto-shift to DEFENSIVE constraints: 45% equity, 40% bonds, 15% cash/hedges",
+              "rationale": "Elevated recession risk warrants capital preservation"
+            },
+            {
+              "condition": "If breadth reversal confirmed (A/D <0.60 for 3 consecutive days)",
+              "action": "Auto-execute 10% equity trim, shift proceeds to bonds/cash",
+              "rationale": "Breadth reversal signals regime shift to defensive"
+            },
+            {
+              "condition": "If VIX closes above 25 for 2 consecutive days",
+              "action": "Auto-execute sentiment extreme protocol",
+              "rationale": "VIX >25 elevated volatility requiring immediate response"
+            }
+          ],
+          "sectorcapguidance": {
+            "materialssectorcap": "15% max (vs 10% normal)",
+            "healthcaresectorcap": "14% max (vs 10% normal)",
+            "utilitiessectorcap": "12% max (vs 6% normal)",
+            "technologysectorcap": "12% max (vs 20% normal)",
+            "communicationssectorcap": "6% max (vs 8% normal)",
+            "realestatesectorcap": "4% max (vs 5% normal)",
+            "rationale": "TRANSITION regime supports cap increases for Materials/Healthcare/Utilities, decreases for Tech/Communications"
+          },
+          "positionsizingfinal": {
+            "maxsinglestock": "6% quality large-cap, 4% cyclical growth, 3% speculative",
+            "mag7concentrationtarget": "25% of total equity allocation (from current 34.4%)",
+            "breadthrequirement": "Ensure 50+ stocks represent 70% of equity returns vs current concentration"
+          }
+        }
+      },
+      "turningpoints": {
+        "bullishtrigger": {
+          "triggername": "DISINFLATIONARY_SOFTLANDING",
+          "triggerprobability": 0.25,
+          "targetregime": "GROWTH",
+          "timeframedays": 7,
+          "keywatchitems": [
+            {
+              "item": "CPI Print January 14, 2026",
+              "threshold": "Core CPI 0.2% MoM or lower, 2.7% YoY or lower",
+              "condition": "If CPI comes in disinflationary, soft landing confirmed",
+              "impact": "VERYHIGH",
+              "marketresponse": "Tech profit-taking reversal, Mag7 resumes upside, small-cap weakness reverses, VIX compresses further"
+            },
+            {
+              "item": "Fed Messaging",
+              "threshold": "Powell signals patient stance on rate cuts, no hawkish pivot",
+              "condition": "If Powell/Fed signals comfort with rate-cut continuation",
+              "impact": "HIGH",
+              "marketresponse": "Equity risk premium compresses, PE multiple expansion begins, Bonds sell off, rates steepen then flatten"
+            },
+            {
+              "item": "Manufacturing Stabilization",
+              "threshold": "ISM PMI 49+ for February report (Jan reading 47.9)",
+              "condition": "If ISM rebounds above 49 Jan report 50+, manufacturing streak broken",
+              "impact": "MEDIUM",
+              "marketresponse": "Cyclical outperformance accelerates Materials, Industrials rotate higher, rate-cut momentum builds"
+            },
+            {
+              "item": "Earnings Season Strength",
+              "threshold": "Tech earnings beat, Mag7 forward guidance upbeat 2026 growth 15%+",
+              "condition": "If Q4 earnings beat and Mag7 provides strong 2026 guidance",
+              "impact": "MEDIUMHIGH",
+              "marketresponse": "Tech multiple re-rating upward, Mag7 resumes leadership, concentration risk returns"
+            }
+          ]
+        },
+        "bearishtrigger": {
+          "triggername": "MACRO_DETERIORATION",
+          "triggerprobability": 0.10,
+          "targetregime": "DEFENSIVEBEARISH",
+          "timeframedays": 14,
+          "keywatchitems": [
+            {
+              "item": "CPI Surprise Higher",
+              "threshold": "Core CPI 0.4% MoM or higher, 3.1% YoY or higher",
+              "condition": "If CPI disappoints with sticky inflation, Fed pivot postponed, rate cuts delayed or reversed",
+              "impact": "VERYHIGH",
+              "marketresponse": "Equity selloff 3-5%, Bonds extend selloff, rates spike 30-50 bps, Gold rallies, Materials correction"
+            },
+            {
+              "item": "Payroll Collapse",
+              "threshold": "Non-farm payrolls 50K sustained for 2 months, unemployment 5.0%+",
+              "condition": "If labor market cracks, payroll 50K sustained, unemployment rising",
+              "impact": "VERYHIGH",
+              "marketresponse": "Equity selloff 5-10%, Flight-to-safety bonds/gold, VIX spikes 25+, credit spreads widen 50 bps"
+            },
+            {
+              "item": "Manufacturing Breaks",
+              "threshold": "ISM PMI 46 or below sustained, production and orders both contracting 3+ points MoM",
+              "condition": "If ISM breaks below 46 (11th+ consecutive contraction month)",
+              "impact": "HIGH",
+              "marketresponse": "Cyclical -10% Materials, Industrials capitulate, Treasuries rally 50 bps yield drop, VIX 25+, equity selloff"
+            },
+            {
+              "item": "Credit Event Risk",
+              "threshold": "IG spreads widen to 150+ bps, HY spreads spike to 450+ bps",
+              "condition": "If credit spreads blow out 50+ bps from current tights",
+              "impact": "VERYHIGH",
+              "marketresponse": "Equity panic selling, deleveraging cascade, flight-to-Treasuries/gold, forced position liquidations"
+            },
+            {
+              "item": "Breadth Reversal",
+              "threshold": "Advance-decline ratio drops below 0.50, new highs-lows invert",
+              "condition": "If breadth deteriorates A/D 0.50 sustained",
+              "impact": "HIGH",
+              "marketresponse": "Equity breadth collapse, Mag7 weakness spreads to broader market, volatility spike, rotation reversal"
+            }
+          ]
+        },
+        "scenarioprobabilities": {
+          "growthpathprobability": 0.25,
+          "bullishpathprobability": 0.15,
+          "transitionpathprobability": 0.50,
+          "defensivepathprobability": 0.08,
+          "bearishcrisisprobability": 0.02
+        }
+      },
+      "datafreshnessaudit": {
+        "ismmanufacturingpmi": {
+          "dataagehours": 24,
+          "maxacceptableagehours": 24,
+          "freshnessstatus": "FRESH",
+          "impact": "High relevance ISM stable but deteriorating trend, minor degradation if next report shows material change"
+        },
+        "nonfarmpayrolls": {
+          "dataagehours": 20,
+          "maxacceptableagehours": 24,
+          "freshnessstatus": "FRESH",
+          "impact": "VERYHIGH relevance, latest labor market snapshot near real-time analysis quality"
+        },
+        "unemploymentrate": {
+          "dataagehours": 20,
+          "maxacceptableagehours": 24,
+          "freshnessstatus": "FRESH",
+          "impact": "HIGH relevance, current labor market conditions near real-time analysis quality"
+        },
+        "creditspreads": {
+          "dataagehours": 1,
+          "maxacceptableagehours": 12,
+          "freshnessstatus": "VERYFRESH",
+          "impact": "VERYHIGH relevance, real-time credit market sentiment, current stress assessment"
+        },
+        "marketbreadth": {
+          "dataagehours": 1,
+          "maxacceptableagehours": 24,
+          "freshnessstatus": "VERYFRESH",
+          "impact": "VERYHIGH relevance, same-day market structure data, rotation validation current"
+        },
+        "cpidatamostrecent": {
+          "dataagehours": 168,
+          "maxacceptableagehours": 240,
+          "freshnessstatus": "AGEDBUTRELEVANT",
+          "impact": "MEDIUM impact January 14 report expected 4 days out, current data used may be superseded"
+        },
+        "overallfreshnessassessment": "MOSTLYFRESH",
+        "confidencedegradation": -0.02,
+        "analysisnote": "Data freshness is exceptional for regime classification. ISM manufacturing 24 hours old (preferred window met). Labor data fresh 20 hours old. Credit spreads very fresh (1 hour old). Market breadth updated intraweek (1 hour old). CPI data aged at 168 hours but acceptable pending Jan 14 report. Weekly Market Structure Report, Risk Regime Report, and AI/Mag7 Intelligence reports all dated January 10, 2026, incorporating Friday Jan 10 market close data. Overall freshness supports TRANSITION regime confidence 74% with minimal penalty."
+      }
+    },
+    {
+      "instanceid": 1,
+      "instancesequence": 1,
+      "iscurrent": false,
+      "generatedat": "2026-01-09T21:17:00Z",
+      "generatedatlocal": "2026-01-09 02:17 PM MST",
+      "updatetype": "weekly",
+      "reportcontext": "Week 1 of 2026 analysis. Rotation from Mag7 concentration toward breadth participation confirmed. ISM manufacturing contraction in 10th month. Labor market hiring collapse (50K jobs December, weakest in years). Credit spreads tightest in 20 years, no systemic stress. Breadth expansion validates regime transition.",
+      "metadata": {
+        "analyst": "Market-Analyst v8.2.2",
+        "datafreshness": {
+          "lastmajordatarelease": {
+            "timestamp": "2026-01-09T13:30:00Z",
+            "event": "December 2025 Non-Farm Payrolls"
+          },
+          "timesincelastreleasehours": 20
+        }
+      },
+      "regime": {
+        "classification": "TRANSITION",
+        "confidence": 0.72,
+        "recessionprobability6m": 0.22
+      }
+    }
+  ]
+}
